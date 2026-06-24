@@ -117,7 +117,7 @@ export default function NewListingPage() {
         <form onSubmit={submit}>
           {/* Фото */}
           <div className="field">
-            <label>{T('Фото (до 5)', 'Surat (5 tagacha)')}</label>
+            <label>{T('Фото (до 10)', 'Surat (10 tagacha)')}</label>
             <div className="photo-row">
               {previews.map((src, i) => (
                 <div className="photo-thumb" key={i}>

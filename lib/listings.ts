@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 import type { Listing } from './types';
 
 const SELECT =
-  '*, seller:profiles(name,rating,is_verified), images:listing_images(url,sort)';
+  '*, seller:profiles(name,rating,is_verified,username), images:listing_images(url,sort)';
 
 export async function getActiveListings(): Promise<Listing[]> {
   const { data, error } = await supabase

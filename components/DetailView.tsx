@@ -60,18 +60,25 @@ export default function DetailView({ item }: { item: Listing }) {
           </div>
 
           {item.description ? <div className="desc">{item.description}</div> : null}
-
-          <div className="safe">
-            <span className="i">🛡</span>
-            <span>{tr(lang, 'safe')}</span>
-          </div>
           <div style={{ height: 8 }} />
         </div>
       </div>
 
       <div className="actionbar">
-        <button className="btn ghost">💬 {tr(lang, 'write')}</button>
-        <button className="btn solid">🛡 {tr(lang, 'buy')}</button>
+        {seller?.username ? (
+          <a
+            className="btn solid"
+            href={`https://t.me/${seller.username}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            💬 {tr(lang, 'write')}
+          </a>
+        ) : (
+          <button className="btn solid" disabled style={{ opacity: 0.55 }}>
+            💬 {tr(lang, 'soon')}
+          </button>
+        )}
       </div>
     </>
   );

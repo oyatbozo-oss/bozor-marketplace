@@ -6,6 +6,7 @@ export interface Seller {
   name: string;
   rating: number | null;
   is_verified: boolean | null;
+  username?: string | null;
 }
 
 export interface Listing {
