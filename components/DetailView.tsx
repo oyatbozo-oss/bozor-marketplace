@@ -2,31 +2,22 @@
 
 import Link from 'next/link';
 import type { Listing } from '@/lib/types';
-import { firstImage } from '@/lib/types';
+import { allImages } from '@/lib/types';
 import { useLang } from './LangProvider';
 import { condText, money, tr } from '@/lib/i18n';
 import { gradientFor } from '@/lib/gradient';
+import Gallery from './Gallery';
 
 export default function DetailView({ item }: { item: Listing }) {
   const { lang } = useLang();
   const seller = item.seller;
-  const img = firstImage(item);
   return (
     <>
       <div className="content">
-        <div
-          className="detail-hero"
-          style={
-            img
-              ? { backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-              : { background: gradientFor((item.brand ?? '') + item.id) }
-          }
-        >
-          <Link className="back" href="/">
-            ←
-          </Link>
-          {!img && '📱'}
-        </div>
+        <Gallery
+          urls={allImages(item)}
+          fallback={gradientFor((item.brand ?? '') + item.id)}
+        />
         <div className="d-pad">
           <div className="d-price">
             {money(item.price)}{' '}
@@ -35,7 +26,7 @@ export default function DetailView({ item }: { item: Listing }) {
           <div className="d-title">{item.title}</div>
           <div className="c-meta" style={{ fontSize: 12 }}>
             📍 {item.district ? `${item.district}, ` : ''}
-            {tr(lang, 'loc')}
+            {item.city || tr(lang, 'loc')}
           </div>
 
           <div className="specs">

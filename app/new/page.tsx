@@ -9,8 +9,10 @@ import { useAuth } from '@/components/AuthProvider';
 import { useLang } from '@/components/LangProvider';
 import { condText, tr } from '@/lib/i18n';
 import type { Condition } from '@/lib/types';
+import { compressImage } from '@/lib/imageCompress';
+import { REGION_NAMES, districtsOf } from '@/lib/uzbekistan';
 
-const MAX = 5;
+const MAX = 10;
 
 export default function NewListingPage() {
   const user = useAuth();
@@ -21,6 +23,7 @@ export default function NewListingPage() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [cond, setCond] = useState<Condition>('used');
+  const [region, setRegion] = useState('Ташкент (город)');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
@@ -45,8 +48,6 @@ export default function NewListingPage() {
     const formEl = e.currentTarget;
     const fd = new FormData(formEl);
     fd.set('condition', cond);
-    fd.delete('photos');
-    photos.forEach((p) => fd.append('photos', p));
 
     const title = (fd.get('title') ?? '').toString().trim();
     const price = (fd.get('price') ?? '').toString().replace(/[^\d]/g, '');
@@ -57,6 +58,11 @@ export default function NewListingPage() {
 
     setBusy(true);
     try {
+      // Сжимаем и конвертируем фото в WebP перед загрузкой
+      fd.delete('photos');
+      const compressed = await Promise.all(photos.map((p) => compressImage(p)));
+      compressed.forEach((p) => fd.append('photos', p));
+
       const res = await fetch('/api/listings', { method: 'POST', body: fd });
       const data = await res.json();
       if (data?.ok) {
@@ -191,21 +197,26 @@ export default function NewListingPage() {
           </div>
 
           <div className="field">
-            <label>{T('Район (Ташкент)', 'Tuman (Toshkent)')}</label>
-            <input name="district" list="districts" placeholder={T('Напр.: Юнусабад', 'Masalan: Yunusobod')} />
-            <datalist id="districts">
-              <option value="Юнусабадский" />
-              <option value="Чиланзарский" />
-              <option value="Мирзо-Улугбекский" />
-              <option value="Яккасарайский" />
-              <option value="Сергелийский" />
-              <option value="Алмазарский" />
-              <option value="Шайхантахурский" />
-              <option value="Мирабадский" />
-              <option value="Учтепинский" />
-              <option value="Яшнабадский" />
-              <option value="Бектемирский" />
-            </datalist>
+            <label>{T('Город / область', 'Shahar / viloyat')}</label>
+            <select name="city" value={region} onChange={(e) => setRegion(e.target.value)}>
+              {REGION_NAMES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label>{T('Район / город', 'Tuman / shahar')}</label>
+            <select name="district" defaultValue="">
+              <option value="">{T('— выбрать —', '— tanlang —')}</option>
+              {districtsOf(region).map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="field">

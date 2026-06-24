@@ -4,7 +4,7 @@ import { getAdminClient } from '@/lib/supabaseAdmin';
 
 export const runtime = 'nodejs';
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 10;
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       model: str('model') || null,
       memory: str('memory') || null,
       district: str('district') || null,
-      city: 'Tashkent',
+      city: str('city') || 'Tashkent',
       status: 'active',
     })
     .select('id')

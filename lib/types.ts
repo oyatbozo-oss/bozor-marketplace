@@ -28,9 +28,15 @@ export interface Listing {
   images?: { url: string; sort: number | null }[] | null;
 }
 
+export function allImages(item: Listing): string[] {
+  if (!item.images) return [];
+  return [...item.images]
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+    .map((x) => x.url);
+}
+
 export function firstImage(item: Listing): string | null {
-  if (!item.images || item.images.length === 0) return null;
-  return [...item.images].sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))[0].url;
+  return allImages(item)[0] ?? null;
 }
 
 export interface Category {
