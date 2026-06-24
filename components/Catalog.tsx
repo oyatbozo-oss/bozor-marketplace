@@ -12,6 +12,7 @@ import {
   optLabel,
   priceLabel,
   COLUMN_KEYS,
+  type AttrField,
 } from '@/lib/categories';
 import Dropdown from './Dropdown';
 import ListingCard from './ListingCard';
@@ -25,6 +26,9 @@ function attrOf(x: Listing, key: string): string {
     return String((x as unknown as Record<string, unknown>)[key] ?? '');
   }
   return String(x.attributes?.[key] ?? '');
+}
+function T(lang: string, ru: string, uz: string) {
+  return lang === 'uz' ? uz : ru;
 }
 
 export default function Catalog({
@@ -42,7 +46,6 @@ export default function Catalog({
   const [cond, setCond] = useState<Condition | null>(null);
   const [pmin, setPmin] = useState('');
   const [pmax, setPmax] = useState('');
-  // фильтры по характеристикам
   const [selF, setSelF] = useState<Record<string, string>>({});
   const [minF, setMinF] = useState<Record<string, string>>({});
   const [maxF, setMaxF] = useState<Record<string, string>>({});
@@ -62,7 +65,8 @@ export default function Catalog({
   }
   function changeCat(slug: string | null) {
     setActiveCat(slug);
-    setActiveSub(null);
+    // сразу выбираем первый раздел, чтобы фильтры появились немедленно
+    setActiveSub(slug ? (catBySlug(slug)?.sub[0]?.slug ?? null) : null);
     resetAttrFilters();
   }
   function changeSub(slug: string | null) {
@@ -76,7 +80,6 @@ export default function Catalog({
     resetAttrFilters();
   }
 
-  // объявления в выбранной категории/разделе
   const scope = useMemo(
     () =>
       listings.filter(
@@ -85,12 +88,6 @@ export default function Catalog({
           (!activeSub || x.subcategory === activeSub)
       ),
     [listings, activeCat, activeSub]
-  );
-
-  // значения бренда для фильтра (если у раздела есть поле brand)
-  const brandValues = useMemo(
-    () => [...new Set(scope.map((x) => x.brand).filter(Boolean) as string[])].slice(0, 16),
-    [scope]
   );
 
   const filtered = useMemo(() => {
@@ -129,6 +126,45 @@ export default function Catalog({
 
   const priceLbl = priceLabel(activeCat, activeSub, lang) ?? tr(lang, 'price');
 
+  // дропдаун-фильтр по списку опций
+  const selectDropdown = (field: AttrField, options: { v: string; label: string }[]) => (
+    <div className="f-row" key={field.key}>
+      <label>{fieldLabel(field, lang)}</label>
+      <Dropdown
+        value={selF[field.key] || null}
+        placeholder={T(lang, 'Все', 'Hammasi')}
+        options={[
+          { value: '', label: T(lang, 'Все', 'Hammasi') },
+          ...options.map((o) => ({ value: o.v, label: o.label })),
+        ]}
+        onChange={(v) =>
+          setSelF((s) => {
+            const next = { ...s, [field.key]: v || '' };
+            if (field.key === 'brand') next.model = ''; // сменили марку — сбросить модель
+            return next;
+          })
+        }
+      />
+    </div>
+  );
+
+  const segFilter = (field: AttrField, options: { v: string; label: string }[]) => (
+    <div className="f-row" key={field.key}>
+      <label>{fieldLabel(field, lang)}</label>
+      <div className="seg">
+        {options.map((o) => (
+          <button
+            key={o.v}
+            className={selF[field.key] === o.v ? 'on' : ''}
+            onClick={() => setSelF((s) => ({ ...s, [field.key]: s[field.key] === o.v ? '' : o.v }))}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div className="searchwrap">
@@ -143,7 +179,6 @@ export default function Catalog({
         </div>
       </div>
 
-      {/* Выбор категории (вертикальный дропдаун) */}
       <Dropdown
         value={activeCat}
         options={catOptions}
@@ -159,7 +194,6 @@ export default function Catalog({
         />
       )}
 
-      {/* Фильтры */}
       <div className="filters">
         <div className="section-t" style={{ paddingLeft: 0 }}>
           <span>{tr(lang, 'filters')}</span>
@@ -175,7 +209,7 @@ export default function Catalog({
           </div>
         </div>
 
-        {/* Состояние — только для разделов, где оно есть */}
+        {/* Состояние — только где есть */}
         {sub?.hasCondition && (
           <div className="f-row">
             <label>{tr(lang, 'cond')}</label>
@@ -189,56 +223,34 @@ export default function Catalog({
           </div>
         )}
 
-        {/* Динамические фильтры выбранного раздела */}
+        {/* Динамические фильтры раздела */}
         {sub?.fields.map((field) => {
           if (field.noFilter) return null;
+
+          // Бренд/Марка — полный справочник дропдауном (или из значений, если поле текстовое)
           if (field.key === 'brand') {
-            if (brandValues.length === 0) return null;
-            return (
-              <div className="f-row" key={field.key}>
-                <label>{fieldLabel(field, lang)}</label>
-                <div className="seg">
-                  {brandValues.map((b) => (
-                    <button key={b} className={selF[field.key] === b ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, brand: s.brand === b ? '' : b, model: '' }))}>
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
+            if (field.options && field.options.length) {
+              return selectDropdown(field, field.options.map((o) => ({ v: o.v, label: optLabel(o, lang) })));
+            }
+            const present = [...new Set(scope.map((x) => x.brand).filter(Boolean) as string[])];
+            if (!present.length) return null;
+            return selectDropdown(field, present.map((b) => ({ v: b, label: b })));
           }
-          // зависимый фильтр (модель) — появляется после выбора родителя
+
+          // Зависимое поле (модель) — появляется после выбора родителя
           if (field.dependsOn) {
             const pv = selF[field.dependsOn];
             const opts = pv ? field.optionsBy?.[pv] : undefined;
-            if (!opts || opts.length === 0) return null;
-            return (
-              <div className="f-row" key={field.key}>
-                <label>{fieldLabel(field, lang)}</label>
-                <div className="seg">
-                  {opts.map((o) => (
-                    <button key={o.v} className={selF[field.key] === o.v ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, [field.key]: s[field.key] === o.v ? '' : o.v }))}>
-                      {optLabel(o, lang)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
+            if (!opts || !opts.length) return null;
+            return selectDropdown(field, opts.map((o) => ({ v: o.v, label: optLabel(o, lang) })));
           }
-          if (field.type === 'select') {
-            return (
-              <div className="f-row" key={field.key}>
-                <label>{fieldLabel(field, lang)}</label>
-                <div className="seg">
-                  {field.options?.map((o) => (
-                    <button key={o.v} className={selF[field.key] === o.v ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, [field.key]: s[field.key] === o.v ? '' : o.v }))}>
-                      {optLabel(o, lang)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
+
+          if (field.type === 'select' && field.options) {
+            const opts = field.options.map((o) => ({ v: o.v, label: optLabel(o, lang) }));
+            // длинные списки — дропдаун, короткие — кнопки
+            return field.options.length > 6 ? selectDropdown(field, opts) : segFilter(field, opts);
           }
+
           if (field.type === 'number') {
             return (
               <div className="f-row" key={field.key}>
@@ -272,8 +284,4 @@ export default function Catalog({
       </div>
     </>
   );
-}
-
-function T(lang: string, ru: string, uz: string) {
-  return lang === 'uz' ? uz : ru;
 }
