@@ -1,9 +1,10 @@
 import type { Lang } from './types';
 
-// ── Описание характеристик категорий ────────────────────────────
-// Поля с ключами brand / model / memory сохраняются в одноимённые
-// колонки listings (для совместимости и фильтра по бренду),
-// остальные ключи уходят в JSONB attributes.
+// ── Характеристики категорий (как на Avito) ─────────────────────
+// Поля с ключами brand/model/memory сохраняются в одноимённые колонки
+// listings; остальные ключи — в JSONB attributes.
+// Каждое поле может быть фильтром: number → диапазон, select → выбор,
+// text (кроме brand) в фильтрах не участвует.
 
 export type FieldType = 'text' | 'number' | 'select';
 
@@ -20,13 +21,16 @@ export interface AttrField {
   type: FieldType;
   options?: Opt[];
   unit?: string;
+  noFilter?: boolean; // не показывать как фильтр (напр. цвет, модель)
 }
 
 export interface SubCategory {
   slug: string;
   ru: string;
   uz: string;
-  hasCondition?: boolean; // показывать переключатель Новый/Б.у.
+  hasCondition?: boolean; // переключатель Новый / Б.у.
+  priceRu?: string; // переопределение подписи цены (напр. «Зарплата»)
+  priceUz?: string;
   fields: AttrField[];
 }
 
@@ -38,7 +42,7 @@ export interface Category {
   sub: SubCategory[];
 }
 
-// Часто переиспользуемые наборы опций
+// ── Наборы опций ─────────────────────────────────────────────────
 const TRANSMISSION: Opt[] = [
   { v: 'mt', ru: 'Механика', uz: 'Mexanika' },
   { v: 'at', ru: 'Автомат', uz: 'Avtomat' },
@@ -59,6 +63,37 @@ const BODY: Opt[] = [
   { v: 'minivan', ru: 'Минивэн', uz: 'Miniven' },
   { v: 'pickup', ru: 'Пикап', uz: 'Pikap' },
   { v: 'coupe', ru: 'Купе', uz: 'Kupe' },
+  { v: 'wagon', ru: 'Универсал', uz: 'Universal' },
+];
+const DRIVE: Opt[] = [
+  { v: 'front', ru: 'Передний', uz: 'Old' },
+  { v: 'rear', ru: 'Задний', uz: 'Orqa' },
+  { v: 'full', ru: 'Полный', uz: 'To‘liq' },
+];
+const ROOMS: Opt[] = [
+  { v: 'studio', ru: 'Студия', uz: 'Studiya' },
+  { v: '1', ru: '1' },
+  { v: '2', ru: '2' },
+  { v: '3', ru: '3' },
+  { v: '4', ru: '4' },
+  { v: '5+', ru: '5+' },
+];
+const BUILDING: Opt[] = [
+  { v: 'brick', ru: 'Кирпичный', uz: 'G‘ishtli' },
+  { v: 'panel', ru: 'Панельный', uz: 'Panelli' },
+  { v: 'monolith', ru: 'Монолитный', uz: 'Monolit' },
+  { v: 'block', ru: 'Блочный', uz: 'Blokli' },
+];
+const RENOVATION: Opt[] = [
+  { v: 'euro', ru: 'Евроремонт', uz: 'Yevroremont' },
+  { v: 'good', ru: 'Хороший', uz: 'Yaxshi' },
+  { v: 'middle', ru: 'Средний', uz: 'O‘rtacha' },
+  { v: 'none', ru: 'Требует ремонта', uz: 'Ta’mir kerak' },
+  { v: 'rough', ru: 'Без ремонта (черновая)', uz: 'Ta’mirsiz' },
+];
+const RENT_PERIOD: Opt[] = [
+  { v: 'month', ru: 'Помесячно', uz: 'Oylik' },
+  { v: 'day', ru: 'Посуточно', uz: 'Kunlik' },
 ];
 const SIZE_CLOTHES: Opt[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((s) => ({ v: s, ru: s }));
 const GENDER: Opt[] = [
@@ -71,6 +106,7 @@ const EMPLOYMENT: Opt[] = [
   { v: 'part', ru: 'Частичная', uz: 'Qisman' },
   { v: 'shift', ru: 'Сменный график', uz: 'Smenali' },
   { v: 'remote', ru: 'Удалённо', uz: 'Masofadan' },
+  { v: 'intern', ru: 'Стажировка', uz: 'Amaliyot' },
 ];
 const EXPERIENCE: Opt[] = [
   { v: 'none', ru: 'Без опыта', uz: 'Tajribasiz' },
@@ -79,15 +115,15 @@ const EXPERIENCE: Opt[] = [
   { v: '6+', ru: 'Более 6 лет', uz: '6+ yil' },
 ];
 
-const f = {
-  brand: (ru = 'Бренд', uz = 'Brend'): AttrField => ({ key: 'brand', ru, uz, type: 'text' }),
-  model: (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'text' }),
-  memory: (): AttrField => ({ key: 'memory', ru: 'Память', uz: 'Xotira', type: 'text' }),
-  year: (): AttrField => ({ key: 'year', ru: 'Год выпуска', uz: 'Ishlab chiqarilgan yili', type: 'number' }),
-  text: (key: string, ru: string, uz: string): AttrField => ({ key, ru, uz, type: 'text' }),
-  num: (key: string, ru: string, uz: string, unit?: string): AttrField => ({ key, ru, uz, type: 'number', unit }),
-  sel: (key: string, ru: string, uz: string, options: Opt[]): AttrField => ({ key, ru, uz, type: 'select', options }),
-};
+// ── Фабрики полей ────────────────────────────────────────────────
+const brand = (ru = 'Бренд', uz = 'Brend'): AttrField => ({ key: 'brand', ru, uz, type: 'text' });
+const model = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'text', noFilter: true });
+const memory = (): AttrField => ({ key: 'memory', ru: 'Память', uz: 'Xotira', type: 'text' });
+const year = (): AttrField => ({ key: 'year', ru: 'Год выпуска', uz: 'Yili', type: 'number' });
+const color = (): AttrField => ({ key: 'color', ru: 'Цвет', uz: 'Rang', type: 'text', noFilter: true });
+const txt = (key: string, ru: string, uz: string, noFilter = false): AttrField => ({ key, ru, uz, type: 'text', noFilter });
+const num = (key: string, ru: string, uz: string, unit?: string): AttrField => ({ key, ru, uz, type: 'number', unit });
+const sel = (key: string, ru: string, uz: string, options: Opt[]): AttrField => ({ key, ru, uz, type: 'select', options });
 
 export const CATEGORIES: Category[] = [
   {
@@ -96,54 +132,18 @@ export const CATEGORIES: Category[] = [
     uz: 'Elektronika',
     icon: '📱',
     sub: [
+      { slug: 'smartphones', ru: 'Смартфоны', uz: 'Smartfonlar', hasCondition: true, fields: [brand(), model(), memory(), color()] },
       {
-        slug: 'smartphones',
-        ru: 'Смартфоны',
-        uz: 'Smartfonlar',
-        hasCondition: true,
-        fields: [f.brand(), f.model(), f.memory(), f.text('color', 'Цвет', 'Rang')],
+        slug: 'laptops', ru: 'Ноутбуки', uz: 'Noutbuklar', hasCondition: true,
+        fields: [brand(), txt('processor', 'Процессор', 'Protsessor'), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), txt('storage', 'Накопитель', 'Saqlash'), num('screen', 'Экран', 'Ekran', '"')],
       },
-      {
-        slug: 'laptops',
-        ru: 'Ноутбуки',
-        uz: 'Noutbuklar',
-        hasCondition: true,
-        fields: [
-          f.brand(),
-          f.text('processor', 'Процессор', 'Protsessor'),
-          f.num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'),
-          f.text('storage', 'Накопитель', 'Saqlash'),
-          f.num('screen', 'Экран', 'Ekran', '"'),
-        ],
-      },
-      {
-        slug: 'tablets',
-        ru: 'Планшеты',
-        uz: 'Planshetlar',
-        hasCondition: true,
-        fields: [f.brand(), f.model(), f.memory()],
-      },
-      {
-        slug: 'tv',
-        ru: 'ТВ и проекторы',
-        uz: 'TV va proyektorlar',
-        hasCondition: true,
-        fields: [f.brand(), f.num('screen', 'Диагональ', 'Diagonal', '"')],
-      },
-      {
-        slug: 'audio',
-        ru: 'Наушники и аудио',
-        uz: 'Quloqchin va audio',
-        hasCondition: true,
-        fields: [f.brand(), f.text('atype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'consoles',
-        ru: 'Игровые приставки',
-        uz: 'Konsollar',
-        hasCondition: true,
-        fields: [f.brand(), f.model()],
-      },
+      { slug: 'tablets', ru: 'Планшеты', uz: 'Planshetlar', hasCondition: true, fields: [brand(), model(), memory()] },
+      { slug: 'tv', ru: 'ТВ и проекторы', uz: 'TV va proyektorlar', hasCondition: true, fields: [brand(), num('screen', 'Диагональ', 'Diagonal', '"')] },
+      { slug: 'audio', ru: 'Наушники и аудио', uz: 'Quloqchin va audio', hasCondition: true, fields: [brand(), txt('atype', 'Тип', 'Turi')] },
+      { slug: 'smartwatch', ru: 'Умные часы', uz: 'Aqlli soatlar', hasCondition: true, fields: [brand(), model()] },
+      { slug: 'consoles', ru: 'Игровые приставки', uz: 'Konsollar', hasCondition: true, fields: [brand(), model()] },
+      { slug: 'cameras', ru: 'Фото и видео', uz: 'Foto va video', hasCondition: true, fields: [brand(), txt('ctype', 'Тип', 'Turi')] },
+      { slug: 'accessories', ru: 'Аксессуары', uz: 'Aksessuarlar', hasCondition: true, fields: [brand(), txt('atype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -153,39 +153,13 @@ export const CATEGORIES: Category[] = [
     icon: '🚗',
     sub: [
       {
-        slug: 'cars',
-        ru: 'Автомобили',
-        uz: 'Avtomobillar',
-        fields: [
-          f.brand('Марка', 'Marka'),
-          f.model(),
-          f.year(),
-          f.num('mileage', 'Пробег', 'Yurgan masofasi', 'км'),
-          f.sel('transmission', 'Коробка', 'Uzatma', TRANSMISSION),
-          f.sel('fuel', 'Топливo', 'Yoqilg‘i', FUEL),
-          f.sel('body', 'Кузов', 'Kuzov', BODY),
-          f.text('color', 'Цвет', 'Rang'),
-        ],
+        slug: 'cars', ru: 'Автомобили', uz: 'Avtomobillar',
+        fields: [brand('Марка', 'Marka'), model(), year(), num('mileage', 'Пробег', 'Yurgan masofasi', 'км'), sel('transmission', 'Коробка', 'Uzatma', TRANSMISSION), sel('fuel', 'Топливо', 'Yoqilg‘i', FUEL), sel('body', 'Кузов', 'Kuzov', BODY), sel('drive', 'Привод', 'Uzatma turi', DRIVE), num('engine', 'Объём двигателя', 'Dvigatel hajmi', 'л'), color()],
       },
-      {
-        slug: 'moto',
-        ru: 'Мотоциклы',
-        uz: 'Mototsikllar',
-        fields: [f.brand('Марка', 'Marka'), f.year(), f.num('engine', 'Объём', 'Hajmi', 'см³'), f.num('mileage', 'Пробег', 'Masofa', 'км')],
-      },
-      {
-        slug: 'trucks',
-        ru: 'Грузовики и спецтехника',
-        uz: 'Yuk mashinalari',
-        fields: [f.brand('Марка', 'Marka'), f.year(), f.num('mileage', 'Пробег', 'Masofa', 'км')],
-      },
-      {
-        slug: 'parts',
-        ru: 'Запчасти и аксессуары',
-        uz: 'Ehtiyot qismlar',
-        hasCondition: true,
-        fields: [f.text('ptype', 'Тип', 'Turi'), f.brand('Марка авто', 'Avto markasi')],
-      },
+      { slug: 'moto', ru: 'Мотоциклы и мопеды', uz: 'Mototsikllar', fields: [brand('Марка', 'Marka'), year(), num('engine', 'Объём', 'Hajmi', 'см³'), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'trucks', ru: 'Грузовики и спецтехника', uz: 'Yuk va maxsus texnika', fields: [brand('Марка', 'Marka'), year(), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'bus', ru: 'Автобусы', uz: 'Avtobuslar', fields: [brand('Марка', 'Marka'), year(), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'parts', ru: 'Запчасти и аксессуары', uz: 'Ehtiyot qismlar', hasCondition: true, fields: [txt('ptype', 'Тип', 'Turi'), brand('Марка авто', 'Avto markasi')] },
     ],
   },
   {
@@ -195,52 +169,20 @@ export const CATEGORIES: Category[] = [
     icon: '🏠',
     sub: [
       {
-        slug: 'flat_sale',
-        ru: 'Квартиры — продажа',
-        uz: 'Kvartiralar — sotuv',
-        fields: [
-          f.num('rooms', 'Комнат', 'Xonalar'),
-          f.num('area', 'Площадь', 'Maydon', 'м²'),
-          f.num('floor', 'Этаж', 'Qavat'),
-          f.num('floors', 'Этажей в доме', 'Bino qavatlari'),
-        ],
+        slug: 'flat_sale', ru: 'Квартиры — продажа', uz: 'Kvartiralar — sotuv',
+        fields: [sel('rooms', 'Комнат', 'Xonalar', ROOMS), num('area', 'Площадь', 'Maydon', 'м²'), num('floor', 'Этаж', 'Qavat'), num('floors', 'Этажей в доме', 'Bino qavatlari'), sel('building', 'Тип дома', 'Bino turi', BUILDING), sel('renovation', 'Ремонт', 'Ta’mir', RENOVATION)],
       },
       {
-        slug: 'flat_rent',
-        ru: 'Квартиры — аренда',
-        uz: 'Kvartiralar — ijara',
-        fields: [
-          f.num('rooms', 'Комнат', 'Xonalar'),
-          f.num('area', 'Площадь', 'Maydon', 'м²'),
-          f.num('floor', 'Этаж', 'Qavat'),
-          f.sel('rent_period', 'Срок', 'Muddat', [
-            { v: 'month', ru: 'Помесячно', uz: 'Oylik' },
-            { v: 'day', ru: 'Посуточно', uz: 'Kunlik' },
-          ]),
-        ],
+        slug: 'flat_rent', ru: 'Квартиры — аренда', uz: 'Kvartiralar — ijara', priceRu: 'Цена аренды, сум', priceUz: 'Ijara narxi, so‘m',
+        fields: [sel('rooms', 'Комнат', 'Xonalar', ROOMS), num('area', 'Площадь', 'Maydon', 'м²'), num('floor', 'Этаж', 'Qavat'), sel('rent_period', 'Срок', 'Muddat', RENT_PERIOD), sel('renovation', 'Ремонт', 'Ta’mir', RENOVATION)],
       },
       {
-        slug: 'house',
-        ru: 'Дома и дачи',
-        uz: 'Uy va dala hovli',
-        fields: [
-          f.num('rooms', 'Комнат', 'Xonalar'),
-          f.num('area', 'Площадь дома', 'Uy maydoni', 'м²'),
-          f.num('land', 'Участок', 'Yer maydoni', 'сот'),
-        ],
+        slug: 'house', ru: 'Дома и дачи', uz: 'Uy va dala hovli',
+        fields: [sel('rooms', 'Комнат', 'Xonalar', ROOMS), num('area', 'Площадь дома', 'Uy maydoni', 'м²'), num('land', 'Участок', 'Yer maydoni', 'сот'), sel('renovation', 'Ремонт', 'Ta’mir', RENOVATION)],
       },
-      {
-        slug: 'commercial',
-        ru: 'Коммерческая',
-        uz: 'Tijorat',
-        fields: [f.num('area', 'Площадь', 'Maydon', 'м²'), f.text('ptype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'land',
-        ru: 'Участки',
-        uz: 'Yer uchastkalari',
-        fields: [f.num('land', 'Площадь', 'Maydon', 'сот')],
-      },
+      { slug: 'commercial', ru: 'Коммерческая', uz: 'Tijorat', fields: [num('area', 'Площадь', 'Maydon', 'м²'), txt('ptype', 'Тип', 'Turi')] },
+      { slug: 'land', ru: 'Участки', uz: 'Yer uchastkalari', fields: [num('land', 'Площадь', 'Maydon', 'сот')] },
+      { slug: 'garage', ru: 'Гаражи и стоянки', uz: 'Garajlar', fields: [num('area', 'Площадь', 'Maydon', 'м²')] },
     ],
   },
   {
@@ -250,23 +192,12 @@ export const CATEGORIES: Category[] = [
     icon: '💼',
     sub: [
       {
-        slug: 'vacancy',
-        ru: 'Вакансии',
-        uz: 'Bo‘sh ish o‘rinlari',
-        fields: [
-          f.text('position', 'Должность', 'Lavozim'),
-          f.sel('employment', 'Занятость', 'Bandlik', EMPLOYMENT),
-          f.sel('experience', 'Опыт', 'Tajriba', EXPERIENCE),
-        ],
+        slug: 'vacancy', ru: 'Вакансии', uz: 'Bo‘sh ish o‘rinlari', priceRu: 'Зарплата, сум', priceUz: 'Maosh, so‘m',
+        fields: [txt('position', 'Должность', 'Lavozim', true), sel('employment', 'Занятость', 'Bandlik', EMPLOYMENT), sel('experience', 'Опыт', 'Tajriba', EXPERIENCE)],
       },
       {
-        slug: 'resume',
-        ru: 'Резюме',
-        uz: 'Rezyume',
-        fields: [
-          f.text('position', 'Желаемая должность', 'Istalgan lavozim'),
-          f.sel('experience', 'Опыт', 'Tajriba', EXPERIENCE),
-        ],
+        slug: 'resume', ru: 'Резюме', uz: 'Rezyume', priceRu: 'Зарплата от, сум', priceUz: 'Maosh, so‘m',
+        fields: [txt('position', 'Желаемая должность', 'Istalgan lavozim', true), sel('experience', 'Опыт', 'Tajriba', EXPERIENCE), sel('employment', 'Занятость', 'Bandlik', EMPLOYMENT)],
       },
     ],
   },
@@ -276,41 +207,12 @@ export const CATEGORIES: Category[] = [
     uz: 'Shaxsiy buyumlar',
     icon: '👕',
     sub: [
-      {
-        slug: 'clothes',
-        ru: 'Одежда',
-        uz: 'Kiyim',
-        hasCondition: true,
-        fields: [f.sel('gender', 'Пол', 'Jinsi', GENDER), f.sel('size', 'Размер', 'O‘lcham', SIZE_CLOTHES), f.brand()],
-      },
-      {
-        slug: 'shoes',
-        ru: 'Обувь',
-        uz: 'Oyoq kiyim',
-        hasCondition: true,
-        fields: [f.sel('gender', 'Пол', 'Jinsi', GENDER), f.num('size', 'Размер', 'O‘lcham'), f.brand()],
-      },
-      {
-        slug: 'kids',
-        ru: 'Детские товары',
-        uz: 'Bolalar buyumlari',
-        hasCondition: true,
-        fields: [f.text('ktype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'beauty',
-        ru: 'Красота и здоровье',
-        uz: 'Go‘zallik va salomatlik',
-        hasCondition: true,
-        fields: [f.text('btype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'watches',
-        ru: 'Часы и украшения',
-        uz: 'Soat va taqinchoqlar',
-        hasCondition: true,
-        fields: [f.brand(), f.text('wtype', 'Тип', 'Turi')],
-      },
+      { slug: 'clothes', ru: 'Одежда', uz: 'Kiyim', hasCondition: true, fields: [sel('gender', 'Пол', 'Jinsi', GENDER), sel('size', 'Размер', 'O‘lcham', SIZE_CLOTHES), brand()] },
+      { slug: 'shoes', ru: 'Обувь', uz: 'Oyoq kiyim', hasCondition: true, fields: [sel('gender', 'Пол', 'Jinsi', GENDER), num('size', 'Размер', 'O‘lcham'), brand()] },
+      { slug: 'bags', ru: 'Сумки и аксессуары', uz: 'Sumkalar', hasCondition: true, fields: [brand(), txt('btype', 'Тип', 'Turi')] },
+      { slug: 'kids', ru: 'Детские товары', uz: 'Bolalar buyumlari', hasCondition: true, fields: [txt('ktype', 'Тип', 'Turi')] },
+      { slug: 'beauty', ru: 'Красота и здоровье', uz: 'Go‘zallik va salomatlik', hasCondition: true, fields: [txt('btype', 'Тип', 'Turi')] },
+      { slug: 'watches', ru: 'Часы и украшения', uz: 'Soat va taqinchoqlar', hasCondition: true, fields: [brand(), txt('wtype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -319,33 +221,12 @@ export const CATEGORIES: Category[] = [
     uz: 'Uy va bog‘',
     icon: '🏡',
     sub: [
-      {
-        slug: 'furniture',
-        ru: 'Мебель',
-        uz: 'Mebel',
-        hasCondition: true,
-        fields: [f.text('ftype', 'Тип', 'Turi'), f.text('material', 'Материал', 'Material')],
-      },
-      {
-        slug: 'appliances',
-        ru: 'Бытовая техника',
-        uz: 'Maishiy texnika',
-        hasCondition: true,
-        fields: [f.brand(), f.text('atype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'repair',
-        ru: 'Ремонт и стройматериалы',
-        uz: 'Ta’mir va qurilish',
-        hasCondition: true,
-        fields: [f.text('rtype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'plants',
-        ru: 'Растения',
-        uz: 'O‘simliklar',
-        fields: [f.text('ptype', 'Тип', 'Turi')],
-      },
+      { slug: 'furniture', ru: 'Мебель', uz: 'Mebel', hasCondition: true, fields: [txt('ftype', 'Тип', 'Turi'), txt('material', 'Материал', 'Material', true)] },
+      { slug: 'appliances', ru: 'Бытовая техника', uz: 'Maishiy texnika', hasCondition: true, fields: [brand(), txt('atype', 'Тип', 'Turi')] },
+      { slug: 'kitchenware', ru: 'Посуда и кухня', uz: 'Idish va oshxona', hasCondition: true, fields: [txt('ktype', 'Тип', 'Turi')] },
+      { slug: 'repair', ru: 'Ремонт и стройматериалы', uz: 'Ta’mir va qurilish', hasCondition: true, fields: [txt('rtype', 'Тип', 'Turi')] },
+      { slug: 'tools', ru: 'Инструменты', uz: 'Asboblar', hasCondition: true, fields: [brand(), txt('ttype', 'Тип', 'Turi')] },
+      { slug: 'plants', ru: 'Растения', uz: 'O‘simliklar', fields: [txt('ptype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -354,34 +235,11 @@ export const CATEGORIES: Category[] = [
     uz: 'Hobbi va dam olish',
     icon: '🎸',
     sub: [
-      {
-        slug: 'sport',
-        ru: 'Спорт и туризм',
-        uz: 'Sport va turizm',
-        hasCondition: true,
-        fields: [f.text('stype', 'Тип', 'Turi'), f.brand()],
-      },
-      {
-        slug: 'music',
-        ru: 'Музыкальные инструменты',
-        uz: 'Musiqa asboblari',
-        hasCondition: true,
-        fields: [f.text('mtype', 'Тип', 'Turi'), f.brand()],
-      },
-      {
-        slug: 'books',
-        ru: 'Книги и журналы',
-        uz: 'Kitob va jurnallar',
-        hasCondition: true,
-        fields: [f.text('btype', 'Тип', 'Turi')],
-      },
-      {
-        slug: 'collection',
-        ru: 'Коллекционирование',
-        uz: 'Kolleksiya',
-        hasCondition: true,
-        fields: [f.text('ctype', 'Тип', 'Turi')],
-      },
+      { slug: 'sport', ru: 'Спорт и фитнес', uz: 'Sport va fitnes', hasCondition: true, fields: [txt('stype', 'Тип', 'Turi'), brand()] },
+      { slug: 'bikes', ru: 'Велосипеды', uz: 'Velosipedlar', hasCondition: true, fields: [brand(), txt('btype', 'Тип', 'Turi')] },
+      { slug: 'music', ru: 'Музыкальные инструменты', uz: 'Musiqa asboblari', hasCondition: true, fields: [txt('mtype', 'Тип', 'Turi'), brand()] },
+      { slug: 'books', ru: 'Книги и журналы', uz: 'Kitob va jurnallar', hasCondition: true, fields: [txt('btype', 'Тип', 'Turi')] },
+      { slug: 'collection', ru: 'Коллекционирование', uz: 'Kolleksiya', hasCondition: true, fields: [txt('ctype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -390,10 +248,11 @@ export const CATEGORIES: Category[] = [
     uz: 'Hayvonlar',
     icon: '🐾',
     sub: [
-      { slug: 'dogs', ru: 'Собаки', uz: 'Itlar', fields: [f.text('breed', 'Порода', 'Zoti')] },
-      { slug: 'cats', ru: 'Кошки', uz: 'Mushuklar', fields: [f.text('breed', 'Порода', 'Zoti')] },
-      { slug: 'birds', ru: 'Птицы', uz: 'Qushlar', fields: [f.text('species', 'Вид', 'Turi')] },
-      { slug: 'pet_goods', ru: 'Товары для животных', uz: 'Hayvon mollari', hasCondition: true, fields: [f.text('gtype', 'Тип', 'Turi')] },
+      { slug: 'dogs', ru: 'Собаки', uz: 'Itlar', fields: [txt('breed', 'Порода', 'Zoti')] },
+      { slug: 'cats', ru: 'Кошки', uz: 'Mushuklar', fields: [txt('breed', 'Порода', 'Zoti')] },
+      { slug: 'birds', ru: 'Птицы', uz: 'Qushlar', fields: [txt('species', 'Вид', 'Turi')] },
+      { slug: 'fish', ru: 'Аквариум', uz: 'Akvarium', fields: [txt('species', 'Вид', 'Turi')] },
+      { slug: 'pet_goods', ru: 'Товары для животных', uz: 'Hayvon mollari', hasCondition: true, fields: [txt('gtype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -402,9 +261,9 @@ export const CATEGORIES: Category[] = [
     uz: 'Biznes va jihozlar',
     icon: '🏭',
     sub: [
-      { slug: 'equipment', ru: 'Оборудование', uz: 'Jihozlar', hasCondition: true, fields: [f.text('etype', 'Тип', 'Turi'), f.brand()] },
-      { slug: 'ready_business', ru: 'Готовый бизнес', uz: 'Tayyor biznes', fields: [f.text('btype', 'Сфера', 'Soha')] },
-      { slug: 'materials', ru: 'Сырьё и материалы', uz: 'Xom ashyo', fields: [f.text('mtype', 'Тип', 'Turi')] },
+      { slug: 'equipment', ru: 'Оборудование', uz: 'Jihozlar', hasCondition: true, fields: [txt('etype', 'Тип', 'Turi'), brand()] },
+      { slug: 'ready_business', ru: 'Готовый бизнес', uz: 'Tayyor biznes', fields: [txt('btype', 'Сфера', 'Soha')] },
+      { slug: 'materials', ru: 'Сырьё и материалы', uz: 'Xom ashyo', fields: [txt('mtype', 'Тип', 'Turi')] },
     ],
   },
   {
@@ -413,7 +272,7 @@ export const CATEGORIES: Category[] = [
     uz: 'Xizmatlar',
     icon: '🛠️',
     sub: [
-      { slug: 'services_all', ru: 'Услуги', uz: 'Xizmatlar', fields: [f.text('stype', 'Вид услуги', 'Xizmat turi')] },
+      { slug: 'services_all', ru: 'Услуги', uz: 'Xizmatlar', priceRu: 'Цена от, сум', priceUz: 'Narx, so‘m', fields: [txt('stype', 'Вид услуги', 'Xizmat turi')] },
     ],
   },
 ];
@@ -438,6 +297,15 @@ export function fieldLabel(field: AttrField, lang: Lang): string {
 }
 export function optLabel(opt: Opt, lang: Lang): string {
   return lang === 'uz' ? opt.uz ?? opt.ru : opt.ru;
+}
+export function optName(field: AttrField, value: string, lang: Lang): string {
+  const o = field.options?.find((x) => x.v === value);
+  return o ? optLabel(o, lang) : value;
+}
+export function priceLabel(cat: string | null | undefined, sub: string | null | undefined, lang: Lang): string | null {
+  const s = subBySlug(cat, sub);
+  if (s?.priceRu) return lang === 'uz' ? s.priceUz ?? s.priceRu : s.priceRu;
+  return null;
 }
 
 // Колонки listings, в которые маппятся одноимённые поля (не в JSONB)

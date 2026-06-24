@@ -45,9 +45,13 @@ export async function POST(req: NextRequest) {
     subcategory,
     status: 'active',
   };
-  if (sub?.hasCondition) {
-    record.condition = str('condition') === 'new' ? 'new' : 'used';
-  }
+  // Состояние — только для разделов, где оно есть; иначе явно null
+  // (перебиваем дефолт колонки 'used', чтобы у недвижимости/работы не было состояния)
+  record.condition = sub?.hasCondition
+    ? str('condition') === 'new'
+      ? 'new'
+      : 'used'
+    : null;
 
   // Характеристики: brand/model/memory → колонки, остальное → attributes (JSONB)
   const attributes: Record<string, string> = {};

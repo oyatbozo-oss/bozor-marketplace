@@ -17,6 +17,7 @@ import {
   subBySlug,
   fieldLabel,
   optLabel,
+  priceLabel,
 } from '@/lib/categories';
 
 const MAX = 10;
@@ -185,7 +186,7 @@ export default function NewListingPage() {
           </div>
 
           <div className="field">
-            <label>{tr(lang, 'price')}</label>
+            <label>{priceLabel(catSlug, subSlug, lang) ?? tr(lang, 'price')}</label>
             <input name="price" inputMode="numeric" placeholder="0" />
           </div>
 
