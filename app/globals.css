@@ -213,6 +213,48 @@ a {
   background: linear-gradient(135deg, var(--amber), #f0b94a);
   color: #3a2a05;
 }
+.fav-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(3px);
+}
+.fav-btn.on {
+  color: #ff5a5f;
+}
+/* Сердечко в шапке */
+.appbar .iconbtn {
+  color: var(--green);
+  font-size: 18px;
+  text-decoration: none;
+}
+/* Сердечко в карточке объявления (нижняя панель) */
+.fav-action {
+  flex: 0 0 auto;
+  width: 52px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+  font-size: 22px;
+  color: var(--muted);
+  cursor: pointer;
+}
+.fav-action.on {
+  color: #ff5a5f;
+  border-color: #ffd0d2;
+  background: #fff5f5;
+}
 .c-body {
   padding: 9px 10px 12px;
 }

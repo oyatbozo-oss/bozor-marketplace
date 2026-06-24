@@ -34,11 +34,14 @@ function T(lang: string, ru: string, uz: string) {
 export default function Catalog({
   listings,
   autoFocus = false,
+  favIds = [],
 }: {
   listings: Listing[];
   autoFocus?: boolean;
+  favIds?: string[];
 }) {
   const { lang } = useLang();
+  const favSet = useMemo(() => new Set(favIds), [favIds]);
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState('');
   const [activeCat, setActiveCat] = useState<string | null>(null);
@@ -290,7 +293,7 @@ export default function Catalog({
 
       <div className="grid">
         {filtered.length ? (
-          filtered.map((it) => <ListingCard key={it.id} item={it} />)
+          filtered.map((it) => <ListingCard key={it.id} item={it} favorited={favSet.has(it.id)} />)
         ) : (
           <div className="loading">{tr(lang, 'nothing')}</div>
         )}

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useLang } from './LangProvider';
 
 export default function Header() {
@@ -13,7 +14,9 @@ export default function Header() {
       <button className="langtog" onClick={toggle}>
         {lang === 'ru' ? 'UZ' : 'RU'}
       </button>
-      <div className="iconbtn">🔔</div>
+      <Link href="/favorites" className="iconbtn" aria-label="favorites">
+        ♥
+      </Link>
     </div>
   );
 }

@@ -19,12 +19,44 @@ import {
   COLUMN_KEYS,
 } from '@/lib/categories';
 
-export default function DetailView({ item }: { item: Listing }) {
+export default function DetailView({
+  item,
+  favorited = false,
+}: {
+  item: Listing;
+  favorited?: boolean;
+}) {
   const { lang } = useLang();
   const user = useAuth();
   const router = useRouter();
   const [chatBusy, setChatBusy] = useState(false);
+  const [fav, setFav] = useState(favorited);
+  const [favBusy, setFavBusy] = useState(false);
   const isOwn = !!user && !!item.seller_id && user.pid === item.seller_id;
+
+  async function toggleFav() {
+    if (!user) {
+      router.push('/profile');
+      return;
+    }
+    if (favBusy) return;
+    setFavBusy(true);
+    const next = !fav;
+    setFav(next);
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: item.id }),
+      });
+      const d = await res.json();
+      if (typeof d?.favorited === 'boolean') setFav(d.favorited);
+      else setFav(!next);
+    } catch {
+      setFav(!next);
+    }
+    setFavBusy(false);
+  }
 
   async function startChat() {
     if (chatBusy) return;
@@ -127,6 +159,9 @@ export default function DetailView({ item }: { item: Listing }) {
           </button>
         ) : (
           <>
+            <button className={`fav-action ${fav ? 'on' : ''}`} onClick={toggleFav} aria-label="favorite">
+              {fav ? '♥' : '♡'}
+            </button>
             {seller?.username && (
               <a className="btn ghost" href={`https://t.me/${seller.username}`} target="_blank" rel="noreferrer">
                 Telegram
