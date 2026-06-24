@@ -1,5 +1,9 @@
 import type { Lang } from './types';
-import { CAR_MODELS, PHONE_BRANDS, PHONE_MODELS } from './models';
+import {
+  CAR_MODELS, MOTO_MODELS, TRUCK_MODELS, BUS_MODELS,
+  PHONE_BRANDS, PHONE_MODELS, LAPTOP_MODELS, TABLET_MODELS, WATCH_MODELS, CONSOLE_MODELS,
+  TV_BRANDS, APPLIANCE_BRANDS, AUDIO_BRANDS, CAMERA_BRANDS,
+} from './models';
 
 // ── Характеристики категорий (по образцу Avito) ─────────────────
 // brand/model/memory → одноимённые колонки listings; остальное → JSONB attributes.
@@ -143,8 +147,12 @@ const PHONE_BRAND_OPTS = optsFromNames(PHONE_BRANDS);
 const brand = (ru = 'Бренд', uz = 'Brend', options?: Opt[]): AttrField => ({ key: 'brand', ru, uz, type: options ? 'select' : 'text', options });
 const model = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'text', noFilter: true });
 // Зависимая модель: список зависит от выбранной марки/бренда
-const carModel = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'select', dependsOn: 'brand', optionsBy: CAR_MODEL_OPTS });
-const phoneModel = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'select', dependsOn: 'brand', optionsBy: PHONE_MODEL_OPTS });
+const depModel = (rec: Record<string, string[]>): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'select', dependsOn: 'brand', optionsBy: optsByNames(rec) });
+const carModel = (): AttrField => depModel(CAR_MODELS);
+const phoneModel = (): AttrField => depModel(PHONE_MODELS);
+// Бренд-селект: из списка либо из ключей каталога моделей (+ «Другая»)
+const brandList = (list: string[], ru = 'Бренд', uz = 'Brend'): AttrField => ({ key: 'brand', ru, uz, type: 'select', options: optsFromNames(list) });
+const brandKeys = (rec: Record<string, string[]>, ru = 'Бренд', uz = 'Brend'): AttrField => brandList([...Object.keys(rec), 'Другая'], ru, uz);
 const memory = (): AttrField => ({ key: 'memory', ru: 'Память', uz: 'Xotira', type: 'text' });
 const year = (): AttrField => ({ key: 'year', ru: 'Год выпуска', uz: 'Yili', type: 'number' });
 const colorF = (): AttrField => ({ key: 'color', ru: 'Цвет', uz: 'Rang', type: 'select', options: COLORS });
@@ -157,13 +165,13 @@ export const CATEGORIES: Category[] = [
     slug: 'electronics', ru: 'Электроника', uz: 'Elektronika', icon: '📱',
     sub: [
       { slug: 'smartphones', ru: 'Смартфоны', uz: 'Smartfonlar', hasCondition: true, fields: [brand('Бренд', 'Brend', PHONE_BRAND_OPTS), phoneModel(), memory(), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), colorF()] },
-      { slug: 'laptops', ru: 'Ноутбуки', uz: 'Noutbuklar', hasCondition: true, fields: [brand(), model(), txt('processor', 'Процессор', 'Protsessor'), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), num('storage', 'Накопитель', 'Saqlash', 'ГБ'), num('screen', 'Экран', 'Ekran', '"'), colorF()] },
-      { slug: 'tablets', ru: 'Планшеты', uz: 'Planshetlar', hasCondition: true, fields: [brand(), model(), memory(), num('screen', 'Экран', 'Ekran', '"')] },
-      { slug: 'tv', ru: 'ТВ и проекторы', uz: 'TV va proyektorlar', hasCondition: true, fields: [brand(), num('screen', 'Диагональ', 'Diagonal', '"'), sel('smart', 'Smart TV', 'Smart TV', YESNO)] },
-      { slug: 'audio', ru: 'Наушники и аудио', uz: 'Quloqchin va audio', hasCondition: true, fields: [brand(), txt('atype', 'Тип', 'Turi')] },
-      { slug: 'smartwatch', ru: 'Умные часы', uz: 'Aqlli soatlar', hasCondition: true, fields: [brand(), model()] },
-      { slug: 'consoles', ru: 'Игровые приставки', uz: 'Konsollar', hasCondition: true, fields: [brand(), model(), memory()] },
-      { slug: 'cameras', ru: 'Фото и видео', uz: 'Foto va video', hasCondition: true, fields: [brand(), txt('ctype', 'Тип', 'Turi')] },
+      { slug: 'laptops', ru: 'Ноутбуки', uz: 'Noutbuklar', hasCondition: true, fields: [brandKeys(LAPTOP_MODELS), depModel(LAPTOP_MODELS), txt('processor', 'Процессор', 'Protsessor'), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), num('storage', 'Накопитель', 'Saqlash', 'ГБ'), num('screen', 'Экран', 'Ekran', '"'), colorF()] },
+      { slug: 'tablets', ru: 'Планшеты', uz: 'Planshetlar', hasCondition: true, fields: [brandKeys(TABLET_MODELS), depModel(TABLET_MODELS), memory(), num('screen', 'Экран', 'Ekran', '"')] },
+      { slug: 'tv', ru: 'ТВ и проекторы', uz: 'TV va proyektorlar', hasCondition: true, fields: [brandList(TV_BRANDS), num('screen', 'Диагональ', 'Diagonal', '"'), sel('smart', 'Smart TV', 'Smart TV', YESNO)] },
+      { slug: 'audio', ru: 'Наушники и аудио', uz: 'Quloqchin va audio', hasCondition: true, fields: [brandList(AUDIO_BRANDS), txt('atype', 'Тип', 'Turi')] },
+      { slug: 'smartwatch', ru: 'Умные часы', uz: 'Aqlli soatlar', hasCondition: true, fields: [brandKeys(WATCH_MODELS), depModel(WATCH_MODELS)] },
+      { slug: 'consoles', ru: 'Игровые приставки', uz: 'Konsollar', hasCondition: true, fields: [brandKeys(CONSOLE_MODELS), depModel(CONSOLE_MODELS), memory()] },
+      { slug: 'cameras', ru: 'Фото и видео', uz: 'Foto va video', hasCondition: true, fields: [brandList(CAMERA_BRANDS), txt('ctype', 'Тип', 'Turi')] },
       { slug: 'accessories', ru: 'Аксессуары', uz: 'Aksessuarlar', hasCondition: true, fields: [brand(), txt('atype', 'Тип', 'Turi')] },
     ],
   },
@@ -181,8 +189,9 @@ export const CATEGORIES: Category[] = [
           sel('owners', 'Владельцев', 'Egalari', OWNERS), sel('customs', 'Растаможка', 'Rastamojka', CUSTOMS),
         ],
       },
-      { slug: 'moto', ru: 'Мотоциклы и мототехника', uz: 'Mototexnika', fields: [sel('moto_type', 'Тип', 'Turi', MOTO_TYPE), brand('Марка', 'Marka'), year(), num('engine', 'Объём', 'Hajmi', 'см³'), num('mileage', 'Пробег', 'Masofa', 'км')] },
-      { slug: 'trucks', ru: 'Грузовики и спецтехника', uz: 'Yuk va maxsus texnika', fields: [sel('truck_type', 'Тип', 'Turi', TRUCK_TYPE), brand('Марка', 'Marka'), year(), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'moto', ru: 'Мотоциклы и мототехника', uz: 'Mototexnika', fields: [sel('moto_type', 'Тип', 'Turi', MOTO_TYPE), brandKeys(MOTO_MODELS, 'Марка', 'Marka'), depModel(MOTO_MODELS), year(), num('engine', 'Объём', 'Hajmi', 'см³'), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'trucks', ru: 'Грузовики и спецтехника', uz: 'Yuk va maxsus texnika', fields: [sel('truck_type', 'Тип', 'Turi', TRUCK_TYPE), brandKeys(TRUCK_MODELS, 'Марка', 'Marka'), depModel(TRUCK_MODELS), year(), num('mileage', 'Пробег', 'Masofa', 'км')] },
+      { slug: 'bus', ru: 'Автобусы', uz: 'Avtobuslar', fields: [brandKeys(BUS_MODELS, 'Марка', 'Marka'), depModel(BUS_MODELS), year(), num('mileage', 'Пробег', 'Masofa', 'км'), num('seats', 'Количество мест', 'Joylar soni')] },
       { slug: 'parts', ru: 'Запчасти и аксессуары', uz: 'Ehtiyot qismlar', hasCondition: true, fields: [txt('ptype', 'Тип запчасти', 'Qism turi'), brand('Марка авто', 'Avto markasi', CAR_MAKES)] },
       { slug: 'tires', ru: 'Шины и диски', uz: 'Shina va disklar', hasCondition: true, fields: [brand(), num('radius', 'Радиус', 'Radius', 'R'), sel('season', 'Сезон', 'Mavsum', SEASON)] },
     ],
@@ -240,7 +249,7 @@ export const CATEGORIES: Category[] = [
     slug: 'home', ru: 'Дом и сад', uz: 'Uy va bog‘', icon: '🏡',
     sub: [
       { slug: 'furniture', ru: 'Мебель', uz: 'Mebel', hasCondition: true, fields: [sel('ftype', 'Тип', 'Turi', FURNITURE_TYPE), txt('material', 'Материал', 'Material', true), colorF()] },
-      { slug: 'appliances', ru: 'Бытовая техника', uz: 'Maishiy texnika', hasCondition: true, fields: [sel('atype', 'Тип', 'Turi', APPLIANCE_TYPE), brand()] },
+      { slug: 'appliances', ru: 'Бытовая техника', uz: 'Maishiy texnika', hasCondition: true, fields: [sel('atype', 'Тип', 'Turi', APPLIANCE_TYPE), brandList(APPLIANCE_BRANDS)] },
       { slug: 'kitchenware', ru: 'Посуда и кухня', uz: 'Idish va oshxona', hasCondition: true, fields: [sel('ktype', 'Тип', 'Turi', KITCHEN_TYPE)] },
       { slug: 'repair', ru: 'Ремонт и стройматериалы', uz: 'Ta’mir va qurilish', hasCondition: true, fields: [sel('rtype', 'Тип', 'Turi', REPAIR_TYPE)] },
       { slug: 'tools', ru: 'Инструменты', uz: 'Asboblar', hasCondition: true, fields: [sel('ttype', 'Тип', 'Turi', TOOL_TYPE), brand()] },

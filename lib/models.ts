@@ -1,7 +1,7 @@
-// Зависимые справочники: Марка → Модели (авто), Бренд → Модели (смартфоны).
-// Названия моделей — фактические. Если марки нет в каталоге, поле «Модель»
-// в форме становится текстовым (можно вписать вручную).
+// Зависимые справочники: Марка/Бренд → Модели. Факт. названия.
+// Если родителя нет в каталоге, поле «Модель» в форме становится текстовым.
 
+// ── Транспорт ───────────────────────────────────────────────────
 export const CAR_MODELS: Record<string, string[]> = {
   Chevrolet: ['Spark', 'Cobalt', 'Nexia', 'Nexia 2', 'Gentra', 'Lacetti', 'Aveo', 'Epica', 'Malibu', 'Malibu 2', 'Captiva', 'Tracker', 'Tracker 2', 'Onix', 'Equinox', 'Trailblazer', 'Orlando', 'Tahoe', 'Damas', 'Labo'],
   Daewoo: ['Matiz', 'Tico', 'Nexia', 'Gentra', 'Lacetti', 'Nubira', 'Leganza', 'Espero', 'Damas', 'Labo'],
@@ -28,6 +28,43 @@ export const CAR_MODELS: Record<string, string[]> = {
   Honda: ['Civic', 'Accord', 'CR-V', 'Pilot', 'HR-V'],
 };
 
+export const MOTO_MODELS: Record<string, string[]> = {
+  Honda: ['CB 125', 'CB 150', 'CBR 250', 'CBR 600', 'CRF 250', 'Africa Twin', 'Gold Wing', 'Dio', 'Lead'],
+  Yamaha: ['YBR 125', 'MT-07', 'MT-09', 'YZF-R3', 'YZF-R6', 'FZ', 'Jog', 'Aerox'],
+  Suzuki: ['GSX-R600', 'GSX-R750', 'Hayabusa', 'Burgman', 'Address', 'DR 200'],
+  Kawasaki: ['Ninja 250', 'Ninja 400', 'Ninja 650', 'Z650', 'Z900', 'Versys'],
+  KTM: ['Duke 200', 'Duke 390', 'RC 390', 'Adventure 390'],
+  'BMW Motorrad': ['G 310', 'F 750 GS', 'R 1250 GS', 'S 1000 RR'],
+  'Harley-Davidson': ['Sportster', 'Iron 883', 'Street 750', 'Fat Boy'],
+  Lifan: ['LF150', 'LF200', 'KP150', 'KPT 200'],
+  Racer: ['Tiger', 'Nitro', 'Panther', 'Magnum'],
+};
+
+export const TRUCK_MODELS: Record<string, string[]> = {
+  Isuzu: ['NQR', 'NPR', 'FVR', 'ELF', 'Forward'],
+  Hino: ['300', '500', '700'],
+  KAMAZ: ['5320', '6520', '43118', '65115'],
+  MAN: ['TGX', 'TGS', 'TGM', 'TGL'],
+  Volvo: ['FH', 'FM', 'FMX'],
+  Scania: ['R-series', 'S-series', 'P-series', 'G-series'],
+  'Mercedes-Benz': ['Actros', 'Atego', 'Axor'],
+  DAF: ['XF', 'CF', 'LF'],
+  Iveco: ['Daily', 'Stralis', 'Eurocargo'],
+  JAC: ['N-series', 'X-series'],
+  Foton: ['Aumark', 'Auman', 'Forland'],
+  Howo: ['A7', 'T7H', 'Sinotruk'],
+};
+
+export const BUS_MODELS: Record<string, string[]> = {
+  Isuzu: ['Citiport', 'Novociti', 'SAZ'],
+  'Mercedes-Benz': ['Sprinter', 'Conecto', 'Tourismo'],
+  MAN: ["Lion's City", "Lion's Coach"],
+  Yutong: ['ZK6122', 'ZK6816', 'ZK6118'],
+  'King Long': ['XMQ6900', 'XMQ6129'],
+  Higer: ['KLQ6109', 'KLQ6928'],
+};
+
+// ── Электроника ─────────────────────────────────────────────────
 export const PHONE_BRANDS: string[] = [
   'Apple', 'Samsung', 'Xiaomi', 'Redmi', 'Honor', 'Huawei', 'Realme', 'Oppo', 'Vivo',
   'OnePlus', 'Google', 'Nokia', 'Tecno', 'Infinix', 'ZTE', 'Motorola', 'Другая',
@@ -46,3 +83,43 @@ export const PHONE_MODELS: Record<string, string[]> = {
   OnePlus: ['12', '11', 'Nord 3', 'Nord CE 3'],
   Google: ['Pixel 8 Pro', 'Pixel 8', 'Pixel 7', 'Pixel 7a'],
 };
+
+export const LAPTOP_MODELS: Record<string, string[]> = {
+  Apple: ['MacBook Air 13', 'MacBook Air 15', 'MacBook Pro 14', 'MacBook Pro 16'],
+  HP: ['Pavilion', 'ProBook', 'EliteBook', 'Omen', 'Victus', 'Spectre', 'Envy'],
+  Dell: ['Inspiron', 'Latitude', 'XPS', 'Vostro', 'G15', 'Alienware'],
+  Lenovo: ['IdeaPad', 'ThinkPad', 'Legion', 'Yoga', 'LOQ'],
+  Asus: ['VivoBook', 'ZenBook', 'ROG', 'TUF Gaming', 'ExpertBook'],
+  Acer: ['Aspire', 'Nitro', 'Predator', 'Swift', 'TravelMate'],
+  MSI: ['Modern', 'Katana', 'Stealth', 'Cyborg', 'Raider'],
+  Huawei: ['MateBook D14', 'MateBook D15', 'MateBook X Pro'],
+};
+
+export const TABLET_MODELS: Record<string, string[]> = {
+  Apple: ['iPad Pro 12.9', 'iPad Pro 11', 'iPad Air', 'iPad', 'iPad mini'],
+  Samsung: ['Galaxy Tab S9', 'Galaxy Tab S8', 'Galaxy Tab A9', 'Galaxy Tab A8'],
+  Xiaomi: ['Pad 6', 'Pad 5', 'Redmi Pad'],
+  Huawei: ['MatePad Pro', 'MatePad 11', 'MatePad SE'],
+  Lenovo: ['Tab P12', 'Tab M10', 'Tab P11'],
+};
+
+export const WATCH_MODELS: Record<string, string[]> = {
+  Apple: ['Watch Ultra 2', 'Watch Series 9', 'Watch Series 8', 'Watch SE'],
+  Samsung: ['Galaxy Watch 6', 'Galaxy Watch 5', 'Galaxy Watch 4'],
+  Xiaomi: ['Watch S3', 'Watch 2 Pro', 'Smart Band 8'],
+  Huawei: ['Watch GT 4', 'Watch GT 3', 'Watch Fit'],
+  Amazfit: ['GTR 4', 'GTS 4', 'Bip 5', 'T-Rex 2'],
+  Garmin: ['Fenix 7', 'Forerunner', 'Venu 3'],
+};
+
+export const CONSOLE_MODELS: Record<string, string[]> = {
+  Sony: ['PlayStation 5', 'PlayStation 5 Slim', 'PlayStation 4 Pro', 'PlayStation 4', 'PS Vita'],
+  Microsoft: ['Xbox Series X', 'Xbox Series S', 'Xbox One X', 'Xbox One S'],
+  Nintendo: ['Switch OLED', 'Switch', 'Switch Lite'],
+};
+
+// ── Бренд-справочники (без зависимой модели) ────────────────────
+export const TV_BRANDS: string[] = ['Samsung', 'LG', 'Sony', 'Xiaomi', 'TCL', 'Hisense', 'Artel', 'Premier', 'Shivaki', 'Roison', 'Goldstar', 'Другая'];
+export const APPLIANCE_BRANDS: string[] = ['Samsung', 'LG', 'Bosch', 'Artel', 'Beko', 'Indesit', 'Ariston', 'Midea', 'Haier', 'Shivaki', 'Premier', 'Candy', 'Другая'];
+export const AUDIO_BRANDS: string[] = ['JBL', 'Sony', 'Marshall', 'Apple', 'Samsung', 'Xiaomi', 'Beats', 'Anker', 'Edifier', 'Sven', 'Другая'];
+export const CAMERA_BRANDS: string[] = ['Canon', 'Nikon', 'Sony', 'Fujifilm', 'Panasonic', 'GoPro', 'DJI', 'Другая'];
