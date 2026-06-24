@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import Header from '@/components/Header';
 import TabBar from '@/components/TabBar';
 import { useAuth } from '@/components/AuthProvider';
@@ -50,6 +51,21 @@ export default function ProfilePage() {
                   {lang === 'uz' ? 'Tasdiqlangan' : 'Вход через Telegram'}
                 </div>
               </div>
+            </div>
+
+            <div className="prof-menu">
+              <Link href="/my" className="prof-item">
+                <span>📦 {lang === 'uz' ? 'Mening e’lonlarim' : 'Мои объявления'}</span>
+                <span className="prof-arrow">›</span>
+              </Link>
+              <Link href="/favorites" className="prof-item">
+                <span>♥ {lang === 'uz' ? 'Saralangan' : 'Избранное'}</span>
+                <span className="prof-arrow">›</span>
+              </Link>
+              <Link href="/chat" className="prof-item">
+                <span>💬 {lang === 'uz' ? 'Xabarlar' : 'Сообщения'}</span>
+                <span className="prof-arrow">›</span>
+              </Link>
             </div>
 
             <div style={{ padding: 16 }}>
