@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bozor — live (Supabase)</title>
+<style>
+  :root{--green:#0A7C5A;--green-d:#086049;--blue:#1A4D8F;--ink:#16241f;--muted:#7a8a84;--line:#e8eeeb;--bg:#f4f7f5;--card:#fff;--amber:#E8A317;--chip:#eef4f1;--shadow:0 8px 30px rgba(10,60,40,.10)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#dfeee7,#cfe2da 40%,#bcd6cc);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 12px 60px;color:var(--ink)}
+  .head{max-width:880px;text-align:center;margin:6px 0 14px}
+  .head h1{margin:0;font-size:24px}
+  .head p{margin:6px 0 0;color:#33564a;font-size:13px}
+  .livebar{display:inline-flex;align-items:center;gap:8px;background:#0b1f18;color:#fff;border-radius:22px;padding:7px 14px;font-size:12px;margin-top:10px}
+  .livedot{width:9px;height:9px;border-radius:50%;background:#2ee06a;box-shadow:0 0 0 0 rgba(46,224,106,.6);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,224,106,.6)}70%{box-shadow:0 0 0 8px rgba(46,224,106,0)}100%{box-shadow:0 0 0 0 rgba(46,224,106,0)}}
+  .stage{display:flex;gap:32px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .phone{width:390px;height:800px;background:#06110d;border-radius:46px;padding:12px;box-shadow:0 30px 70px rgba(8,40,28,.45),inset 0 0 0 2px #1d2b25;position:relative;flex:0 0 auto}
+  .screen{position:relative;width:100%;height:100%;background:var(--bg);border-radius:36px;overflow:hidden;display:flex;flex-direction:column}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:26px;background:#06110d;border-radius:0 0 18px 18px;z-index:50}
+  .status{height:40px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 4px;font-size:12px;font-weight:600;color:#0b1f18}
+  .appbar{padding:6px 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg)}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:20px;color:var(--green)}
+  .brand .dot{width:26px;height:26px;border-radius:9px;background:linear-gradient(135deg,var(--green),#13a574);display:grid;place-items:center;color:#fff;font-size:15px}
+  .spacer{flex:1}
+  .iconbtn{width:38px;height:38px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:17px;cursor:pointer}
+  .langtog{font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 10px;cursor:pointer}
+  .langtog b{color:var(--green)}
+  .searchwrap{padding:4px 16px 10px;background:var(--bg)}
+  .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px 12px}
+  .search input{border:0;outline:0;flex:1;font-size:14px;background:transparent}
+  .loc{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);padding:2px 16px 8px;background:var(--bg)}
+  .body{flex:1;overflow-y:auto}
+  .body::-webkit-scrollbar{width:0}
+  .chips{display:flex;gap:8px;padding:6px 16px 12px;overflow-x:auto}
+  .chips::-webkit-scrollbar{height:0}
+  .chip{flex:0 0 auto;background:var(--chip);border:1px solid transparent;color:#2c4a40;border-radius:20px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+  .chip.active{background:var(--green);color:#fff}
+  .section-t{display:flex;align-items:center;justify-content:space-between;padding:4px 16px 8px;font-weight:700;font-size:15px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:2px 16px 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;transition:transform .12s,box-shadow .12s}
+  .card:active{transform:scale(.98)}
+  .card:hover{box-shadow:var(--shadow)}
+  .thumb{height:118px;display:grid;place-items:center;position:relative;font-size:42px;color:#fff}
+  .badge{position:absolute;left:8px;top:8px;background:rgba(8,30,22,.78);color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:7px}
+  .badge.vip{background:linear-gradient(135deg,var(--amber),#f0b94a);color:#3a2a05}
+  .c-body{padding:9px 10px 12px}
+  .price{font-weight:800;font-size:15px}
+  .c-title{font-size:12.5px;color:#33433d;margin:3px 0 6px;line-height:1.25;height:31px;overflow:hidden}
+  .c-meta{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted)}
+  .detail-hero{height:300px;display:grid;place-items:center;font-size:120px;color:#fff;position:relative}
+  .back{position:absolute;top:14px;left:14px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;font-size:18px;cursor:pointer;z-index:5}
+  .d-pad{padding:14px 16px 8px}
+  .d-price{font-size:24px;font-weight:800}
+  .d-title{font-size:16px;font-weight:600;margin:4px 0 8px}
+  .specs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .spec{background:var(--chip);border-radius:10px;padding:7px 10px;font-size:12px}
+  .spec b{display:block;color:var(--muted);font-weight:600;font-size:10px;margin-bottom:2px}
+  .seller{display:flex;align-items:center;gap:11px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0}
+  .ava{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#1A4D8F,#3f78c4);display:grid;place-items:center;color:#fff;font-weight:700}
+  .verif{font-size:11px;color:var(--green);font-weight:700;display:flex;align-items:center;gap:3px}
+  .desc{font-size:13.5px;line-height:1.5;color:#2c3b35;padding:0 2px}
+  .safe{display:flex;gap:10px;background:#eef6f2;border:1px solid #d6e9e0;border-radius:14px;padding:12px;margin:14px 0;font-size:12px;color:#23463a}
+  .safe .i{font-size:20px}
+  .actionbar{display:flex;gap:10px;padding:10px 14px;border-top:1px solid var(--line);background:#fff}
+  .btn{flex:1;border:0;border-radius:13px;padding:14px;font-size:14px;font-weight:700;cursor:pointer}
+  .btn.ghost{background:#eef4f1;color:var(--green)}
+  .btn.solid{background:var(--green);color:#fff}
+  .tabbar{display:flex;background:#fff;border-top:1px solid var(--line);padding:8px 6px 12px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);cursor:pointer;font-weight:600}
+  .tab .ic{font-size:20px;line-height:1}
+  .tab.active{color:var(--green)}
+  .tab.post .ic{width:46px;height:46px;margin-top:-22px;border-radius:16px;background:linear-gradient(135deg,var(--green),#13a574);color:#fff;display:grid;place-items:center;font-size:26px;box-shadow:0 8px 18px rgba(10,124,90,.4)}
+  .view{display:none}.view.active{display:block}
+  .filters{padding:10px 16px}
+  .f-row{margin-bottom:14px}
+  .f-row label{font-size:12px;font-weight:700;color:#2c4a40;display:block;margin-bottom:7px}
+  .seg{display:flex;gap:7px;flex-wrap:wrap}
+  .seg button{border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 12px;font-size:12px;cursor:pointer;font-weight:600;color:#2c3b35}
+  .seg button.on{background:var(--green);color:#fff;border-color:var(--green)}
+  .range{display:flex;gap:8px}
+  .range input{flex:1;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:13px;outline:0}
+  .loading{padding:40px;text-align:center;color:var(--muted);font-size:13px;grid-column:1/3}
+  .toast{position:absolute;bottom:96px;left:50%;transform:translateX(-50%) translateY(20px);background:#0b1f18;color:#fff;padding:11px 18px;border-radius:24px;font-size:13px;opacity:0;transition:.3s;z-index:99;pointer-events:none;white-space:nowrap}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .legend{max-width:330px;font-size:12.5px;color:#2c4a40;background:rgba(255,255,255,.7);border:1px solid #cfe2da;border-radius:16px;padding:16px 18px;line-height:1.6}
+  .legend h3{margin:0 0 8px;font-size:14px;color:var(--green)}
+  .legend code{background:#e7f2ec;padding:1px 5px;border-radius:5px;font-size:11px}
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Bozor — live-версия</h1>
+    <p>Подключено к реальной базе Supabase · данные грузятся из БД</p>
+    <div class="livebar"><span class="livedot"></span> <span id="livetext">Подключение к Supabase…</span></div>
+  </div>
+  <div class="stage">
+    <div class="phone"><div class="screen">
+      <div class="notch"></div>
+      <div class="status"><span>9:41</span><span>5G ▦ 100%</span></div>
+      <div id="chrome">
+        <div class="appbar">
+          <div class="brand"><span class="dot">B</span> Bozor</div>
+          <div class="spacer"></div>
+          <button class="langtog" onclick="toggleLang()"><span id="langlabel">UZ</span></button>
+          <div class="iconbtn" onclick="toast(t('notif'))">🔔</div>
+        </div>
+        <div class="searchwrap"><div class="search">🔍 <input id="searchph" placeholder="" oninput="onSearch()"></div></div>
+        <div class="loc">📍 <span data-i="loc">Ташкент</span></div>
+      </div>
+      <div class="body" id="scrollbody">
+        <div class="view active" id="view-home">
+          <div class="chips" id="catchips"></div>
+          <div class="section-t"><span data-i="recommend">Объявления</span></div>
+          <div class="grid" id="homegrid"><div class="loading">⏳ Загрузка…</div></div>
+        </div>
+        <div class="view" id="view-search">
+          <div class="filters">
+            <div class="section-t" style="padding-left:0"><span data-i="filters">Фильтры</span><a onclick="resetFilters()" style="color:var(--green);font-size:12px;cursor:pointer" data-i="reset">сбросить</a></div>
+            <div class="f-row"><label data-i="brand">Бренд</label><div class="seg" id="f-brand"></div></div>
+            <div class="f-row"><label data-i="price">Цена, сум</label><div class="range"><input id="pmin" placeholder="от" inputmode="numeric" oninput="renderSearch()"><input id="pmax" placeholder="до" inputmode="numeric" oninput="renderSearch()"></div></div>
+            <div class="f-row"><label data-i="cond">Состояние</label><div class="seg" id="f-cond"></div></div>
+          </div>
+          <div class="section-t"><span><span data-i="found">Найдено</span>: <span id="foundn">0</span></span></div>
+          <div class="grid" id="searchgrid"></div><div style="height:70px"></div>
+        </div>
+        <div class="view" id="view-detail"></div>
+        <div class="view" id="view-profile"></div>
+      </div>
+      <div class="toast" id="toast"></div>
+      <div class="actionbar" id="detailbar" style="display:none">
+        <button class="btn ghost" onclick="toast(t('write'))">💬 <span data-i="write">Написать</span></button>
+        <button class="btn solid" onclick="toast(t('safebuy'))">🛡 <span data-i="buy">Купить</span></button>
+      </div>
+      <div class="tabbar" id="tabbar">
+        <div class="tab active" data-tab="home" onclick="go('home')"><span class="ic">🏠</span><span data-i="t_home">Главная</span></div>
+        <div class="tab" data-tab="search" onclick="go('search')"><span class="ic">🔍</span><span data-i="t_search">Поиск</span></div>
+        <div class="tab post" onclick="toast(t('postdemo'))"><span class="ic">＋</span><span data-i="t_post">Подать</span></div>
+        <div class="tab" data-tab="chat" onclick="toast(t('soon'))"><span class="ic">💬</span><span data-i="t_chat">Чат</span></div>
+        <div class="tab" data-tab="profile" onclick="go('profile')"><span class="ic">👤</span><span data-i="t_prof">Профиль</span></div>
+      </div>
+    </div></div>
+    <div class="legend">
+      <h3>Это live-версия</h3>
+      <p>Лента, поиск и карточка берут данные из реальной базы <b>Supabase</b> (проект <code>bozor-marketplace</code>, регион Frankfurt) через публичный anon-ключ и политику RLS «публичное чтение».</p>
+      <p>Подача, чат и избранное здесь как демо — для них нужна авторизация (следующий шаг).</p>
+      <p style="color:#6b7d76;margin-bottom:0">Если данные не загрузились — проверь интернет; запросы идут на <code>*.supabase.co</code>.</p>
+    </div>
+  </div>
+<script>
+const SB_URL='https://xsnthzdhvkhwpvopyaqd.supabase.co';
+const SB_KEY='__SB_ANON_KEY__';
+const H={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
+const grads=["linear-gradient(135deg,#1e3c72,#2a5298)","linear-gradient(135deg,#0a7c5a,#13a574)","linear-gradient(135deg,#3a1c71,#d76d77)","linear-gradient(135deg,#232526,#414345)","linear-gradient(135deg,#005c97,#363795)","linear-gradient(135deg,#e8a317,#f0b94a)"];
+function gFor(s){let h=0;for(const c of (s||'x'))h=(h*31+c.charCodeAt(0))%grads.length;return grads[h];}
+const I={ru:{loc:"Ташкент",recommend:"Объявления",filters:"Фильтры",reset:"сбросить",brand:"Бренд",price:"Цена, сум",cond:"Состояние",found:"Найдено",write:"Написать",buy:"Купить",t_home:"Главная",t_search:"Поиск",t_post:"Подать",t_chat:"Чат",t_prof:"Профиль",searchph:"Поиск: iPhone, Samsung…",notif:"Уведомления здесь",safebuy:"Безопасная сделка: оплата защищена",safe:"Безопасная сделка: деньги придут продавцу после получения товара",postdemo:"Подача объявления — нужен вход (демо)",soon:"Скоро",sold:"сум",verified:"Проверенный",today:"сегодня"},
+        uz:{loc:"Toshkent",recommend:"E’lonlar",filters:"Filtrlar",reset:"tozalash",brand:"Brend",price:"Narx, so‘m",cond:"Holati",found:"Topildi",write:"Yozish",buy:"Sotib olish",t_home:"Asosiy",t_search:"Qidiruv",t_post:"Joylash",t_chat:"Chat",t_prof:"Profil",searchph:"Qidiruv: iPhone, Samsung…",notif:"Bildirishnomalar",safebuy:"Xavfsiz bitim: to‘lov himoyalangan",safe:"Xavfsiz bitim: pul tovar olingach o‘tadi",postdemo:"E’lon joylash — kirish kerak (demo)",soon:"Tez orada",sold:"so‘m",verified:"Tasdiqlangan",today:"bugun"}};
+let lang='ru';
+function t(k){return (I[lang][k]||k);}
+function applyLang(){document.querySelectorAll('[data-i]').forEach(e=>{const k=e.getAttribute('data-i');if(I[lang][k])e.textContent=I[lang][k];});document.getElementById('searchph').placeholder=t('searchph');document.getElementById('langlabel').textContent=lang==='ru'?'UZ':'RU';}
+function toggleLang(){lang=lang==='ru'?'uz':'ru';applyLang();renderHome();renderFilters();renderSearch();}
+let LISTINGS=[],CATS=[],activeCat='all',filter={brand:null,cond:null};
+async function load(){
+  try{
+    const [lr,cr]=await Promise.all([
+      fetch(`${SB_URL}/rest/v1/listings?select=*,seller:profiles(name,rating,is_verified)&status=eq.active&order=created_at.desc`,{headers:H}),
+      fetch(`${SB_URL}/rest/v1/categories?select=*&order=sort`,{headers:H})
+    ]);
+    LISTINGS=await lr.json(); CATS=await cr.json();
+    document.getElementById('livetext').textContent='Supabase подключён · объявлений: '+LISTINGS.length;
+    renderHome(); renderFilters(); renderSearch();
+  }catch(e){
+    document.getElementById('livetext').textContent='Ошибка подключения';
+    document.getElementById('homegrid').innerHTML='<div class="loading">Не удалось загрузить данные.<br>Проверь интернет.</div>';
+  }
+}
+function money(n){return Number(n).toLocaleString('ru-RU')}
+function condTxt(c){return lang==='uz'?(c==='new'?'Yangi':'Ishlatilgan'):(c==='new'?'Новый':'Б/у')}
+function cardHTML(it){return `<div class="card" onclick="openDetail('${it.id}')">
+  <div class="thumb" style="background:${gFor(it.brand+it.id)}">${it.is_promoted?'<span class="badge vip">VIP</span>':'<span class="badge">'+condTxt(it.condition)+'</span>'}📱</div>
+  <div class="c-body"><div class="price">${money(it.price)} <span style="font-size:11px;color:#7a8a84">${t('sold')}</span></div>
+  <div class="c-title">${it.title}</div>
+  <div class="c-meta">📍 ${it.district||'Ташкент'} · ⭐ ${it.seller?it.seller.rating:'-'}</div></div></div>`;}
+function renderHome(){
+  const chips=[{slug:'all',name_ru:'Все',name_uz:'Hammasi'}].concat(CATS.filter(c=>c.parent_id));
+  document.getElementById('catchips').innerHTML=chips.map(c=>`<div class="chip ${ (c.slug===activeCat)?'active':''}" onclick="setCat('${c.slug}')">${lang==='uz'?c.name_uz:c.name_ru}</div>`).join('');
+  let items=LISTINGS;
+  if(activeCat!=='all'){const map={iphone:'iPhone',samsung:'Samsung',xiaomi:'Xiaomi'};const b=map[activeCat];items=b?LISTINGS.filter(x=>x.brand===b):[];}
+  document.getElementById('homegrid').innerHTML=items.length?items.map(cardHTML).join(''):'<div class="loading">Пока пусто 🙂</div>';
+}
+function setCat(s){activeCat=s;renderHome();}
+function renderFilters(){
+  const brands=[...new Set(LISTINGS.map(x=>x.brand))];
+  const mk=(arr,key,disp)=>arr.map(v=>`<button class="${filter[key]===v?'on':''}" onclick="setF('${key}','${v}')">${disp?disp(v):v}</button>`).join('');
+  document.getElementById('f-brand').innerHTML=mk(brands,'brand');
+  document.getElementById('f-cond').innerHTML=mk(['new','used'],'cond',condTxt);
+}
+function setF(k,v){filter[k]=filter[k]===v?null:v;renderFilters();renderSearch();}
+function resetFilters(){filter={brand:null,cond:null};document.getElementById('pmin').value='';document.getElementById('pmax').value='';renderFilters();renderSearch();}
+function n(s){return parseInt((s||'').replace(/\D/g,''))||null}
+function renderSearch(){
+  const pmin=n(document.getElementById('pmin')?.value),pmax=n(document.getElementById('pmax')?.value);
+  const q=(document.getElementById('searchph')?.value||'').toLowerCase();
+  let items=LISTINGS.filter(x=>{
+    if(filter.brand&&x.brand!==filter.brand)return false;
+    if(filter.cond&&x.condition!==filter.cond)return false;
+    if(pmin&&x.price<pmin)return false;
+    if(pmax&&x.price>pmax)return false;
+    if(q&&!(x.title||'').toLowerCase().includes(q))return false;
+    return true;});
+  const fn=document.getElementById('foundn');if(fn)fn.textContent=items.length;
+  const g=document.getElementById('searchgrid');if(g)g.innerHTML=items.length?items.map(cardHTML).join(''):'<div class="loading">Ничего не найдено</div>';
+}
+function onSearch(){const v=document.getElementById('view-search');if(!v.classList.contains('active'))go('search');renderSearch();}
+function openDetail(id){
+  const it=LISTINGS.find(x=>x.id===id);if(!it)return;
+  document.getElementById('view-detail').innerHTML=`
+   <div class="detail-hero" style="background:${gFor(it.brand+it.id)}"><div class="back" onclick="go('home')">←</div>📱</div>
+   <div class="d-pad">
+     <div class="d-price">${money(it.price)} <span style="font-size:15px;color:#7a8a84">${t('sold')}</span></div>
+     <div class="d-title">${it.title}</div>
+     <div class="c-meta" style="font-size:12px">📍 ${it.district||'Ташкент'}, ${t('loc')}</div>
+     <div class="specs"><div class="spec"><b>${t('brand')}</b>${it.brand||'-'}</div><div class="spec"><b>Модель</b>${it.model||'-'}</div><div class="spec"><b>Память</b>${it.memory||'-'}</div><div class="spec"><b>${t('cond')}</b>${condTxt(it.condition)}</div></div>
+     <div class="seller"><div class="ava">${it.seller?it.seller.name[0]:'?'}</div><div style="flex:1"><div style="font-weight:700">${it.seller?it.seller.name:'—'}</div><div class="verif">✔ ${t('verified')} · ⭐ ${it.seller?it.seller.rating:'-'}</div></div></div>
+     <div class="desc">${it.description||''}</div>
+     <div class="safe"><span class="i">🛡</span><span>${t('safe')}</span></div><div style="height:8px"></div>
+   </div>`;
+  showView('detail');document.getElementById('chrome').style.display='none';document.getElementById('detailbar').style.display='flex';document.getElementById('tabbar').style.display='none';document.getElementById('scrollbody').scrollTop=0;
+}
+function renderProfile(){document.getElementById('view-profile').innerHTML=`
+   <div style="background:linear-gradient(135deg,var(--green),#0f9168);color:#fff;padding:22px 18px;display:flex;align-items:center;gap:14px"><div class="ava" style="width:60px;height:60px;font-size:22px;background:rgba(255,255,255,.2)">О</div><div><div style="font-weight:800;font-size:18px">Оятилло</div><div style="font-size:12px;opacity:.9">✔ ${t('verified')} · ⭐ 4.9</div></div></div>
+   <div style="display:flex;text-align:center;background:#fff;border-bottom:1px solid var(--line)"><div style="flex:1;padding:14px"><b style="display:block;font-size:18px">${LISTINGS.length}</b><span style="font-size:11px;color:var(--muted)">в базе</span></div><div style="flex:1;padding:14px"><b style="display:block;font-size:18px">340</b><span style="font-size:11px;color:var(--muted)">просмотры</span></div></div>
+   <div style="padding:16px;font-size:13px;color:#33564a">Профиль — демо. Полноценный кабинет появится после подключения авторизации.</div>`;}
+function showView(name){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById('view-'+name).classList.add('active');}
+function setActiveTab(tab){document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));}
+function go(name){document.getElementById('detailbar').style.display='none';document.getElementById('tabbar').style.display='flex';document.getElementById('chrome').style.display=(name==='home'||name==='search')?'block':'none';
+  if(name==='home'){renderHome();showView('home');setActiveTab('home');}
+  if(name==='search'){renderFilters();renderSearch();showView('search');setActiveTab('search');}
+  if(name==='profile'){renderProfile();showView('profile');setActiveTab('profile');}
+  document.getElementById('scrollbody').scrollTop=0;}
+let toastT;function toast(m){const e=document.getElementById('toast');e.textContent=m;e.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('show'),1800);}
+applyLang();load();
+</script>
+</body>
+</html>
