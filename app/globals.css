@@ -290,6 +290,18 @@ a {
   font-size: 13px;
   outline: 0;
 }
+.f-text {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 11px;
+  font-size: 13px;
+  outline: 0;
+  background: #fff;
+}
+.f-text:focus {
+  border-color: var(--green);
+}
 
 /* ---------- Карточка объявления ---------- */
 .detail-hero {

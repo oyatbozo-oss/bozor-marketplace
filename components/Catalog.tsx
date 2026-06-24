@@ -49,6 +49,7 @@ export default function Catalog({
   const [selF, setSelF] = useState<Record<string, string>>({});
   const [minF, setMinF] = useState<Record<string, string>>({});
   const [maxF, setMaxF] = useState<Record<string, string>>({});
+  const [txtF, setTxtF] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (autoFocus) searchRef.current?.focus();
@@ -62,6 +63,7 @@ export default function Catalog({
     setSelF({});
     setMinF({});
     setMaxF({});
+    setTxtF({});
   }
   function changeCat(slug: string | null) {
     setActiveCat(slug);
@@ -102,6 +104,9 @@ export default function Catalog({
       for (const [k, v] of Object.entries(selF)) {
         if (v && attrOf(x, k) !== v) return false;
       }
+      for (const [k, v] of Object.entries(txtF)) {
+        if (v && !attrOf(x, k).toLowerCase().includes(v.toLowerCase())) return false;
+      }
       for (const k of new Set([...Object.keys(minF), ...Object.keys(maxF)])) {
         const num = toInt(attrOf(x, k));
         const mn = toInt(minF[k] || '');
@@ -111,7 +116,7 @@ export default function Catalog({
       }
       return true;
     });
-  }, [scope, query, pmin, pmax, cond, selF, minF, maxF]);
+  }, [scope, query, pmin, pmax, cond, selF, minF, maxF, txtF]);
 
   const catOptions = [
     { value: '', label: tr(lang, 'all') },
@@ -227,14 +232,22 @@ export default function Catalog({
         {sub?.fields.map((field) => {
           if (field.noFilter) return null;
 
-          // Бренд/Марка — полный справочник дропдауном (или из значений, если поле текстовое)
+          // Бренд/Марка — полный справочник дропдауном; без справочника — поле ввода (всегда видно)
           if (field.key === 'brand') {
             if (field.options && field.options.length) {
               return selectDropdown(field, field.options.map((o) => ({ v: o.v, label: optLabel(o, lang) })));
             }
-            const present = [...new Set(scope.map((x) => x.brand).filter(Boolean) as string[])];
-            if (!present.length) return null;
-            return selectDropdown(field, present.map((b) => ({ v: b, label: b })));
+            return (
+              <div className="f-row" key={field.key}>
+                <label>{fieldLabel(field, lang)}</label>
+                <input
+                  className="f-text"
+                  value={txtF[field.key] || ''}
+                  onChange={(e) => setTxtF((t) => ({ ...t, [field.key]: e.target.value }))}
+                  placeholder={T(lang, 'Например: Nike', 'Masalan: Nike')}
+                />
+              </div>
+            );
           }
 
           // Зависимое поле (модель) — появляется после выбора родителя
