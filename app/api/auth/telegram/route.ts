@@ -83,10 +83,12 @@ export async function POST(req: NextRequest) {
   );
 
   const res = NextResponse.json({ ok: true, user: { pid, name } });
+  // SameSite=None + Secure — чтобы сессия работала во встроенном окне Telegram
+  // (Mini App на Desktop/Web грузится в iframe, lax-cookie туда не отправляется).
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: true,
-    sameSite: 'lax',
+    sameSite: 'none',
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
   });
