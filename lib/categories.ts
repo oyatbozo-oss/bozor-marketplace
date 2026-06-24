@@ -1,4 +1,5 @@
 import type { Lang } from './types';
+import { CAR_MODELS, PHONE_BRANDS, PHONE_MODELS } from './models';
 
 // ── Характеристики категорий (по образцу Avito) ─────────────────
 // brand/model/memory → одноимённые колонки listings; остальное → JSONB attributes.
@@ -21,6 +22,8 @@ export interface AttrField {
   options?: Opt[];
   unit?: string;
   noFilter?: boolean;
+  dependsOn?: string; // ключ родительского поля (напр. model зависит от brand)
+  optionsBy?: Record<string, Opt[]>; // значение родителя → варианты
 }
 
 export interface SubCategory {
@@ -130,8 +133,18 @@ const BUSINESS_TYPE: Opt[] = [O('Общепит', 'Umumiy ovqat', 'food'), O('У
 const SERVICE_TYPE: Opt[] = [O('Ремонт и строительство', 'Ta’mir va qurilish', 'repair'), O('Красота и здоровье', 'Go‘zallik', 'beauty'), O('Обучение и курсы', 'Ta’lim', 'edu'), O('Перевозки', 'Tashish', 'transport'), O('IT и интернет', 'IT', 'it'), O('Уборка', 'Tozalash', 'clean'), O('Юридические', 'Yuridik', 'legal'), O('Мероприятия', 'Tadbirlar', 'event'), O('Фото и видео', 'Foto/video', 'photo')];
 
 // ── Фабрики полей ────────────────────────────────────────────────
+const optsFromNames = (names: string[]): Opt[] => names.map((n) => ({ v: n, ru: n }));
+const optsByNames = (rec: Record<string, string[]>): Record<string, Opt[]> =>
+  Object.fromEntries(Object.entries(rec).map(([k, v]) => [k, optsFromNames(v)]));
+const CAR_MODEL_OPTS = optsByNames(CAR_MODELS);
+const PHONE_MODEL_OPTS = optsByNames(PHONE_MODELS);
+const PHONE_BRAND_OPTS = optsFromNames(PHONE_BRANDS);
+
 const brand = (ru = 'Бренд', uz = 'Brend', options?: Opt[]): AttrField => ({ key: 'brand', ru, uz, type: options ? 'select' : 'text', options });
 const model = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'text', noFilter: true });
+// Зависимая модель: список зависит от выбранной марки/бренда
+const carModel = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'select', dependsOn: 'brand', optionsBy: CAR_MODEL_OPTS });
+const phoneModel = (): AttrField => ({ key: 'model', ru: 'Модель', uz: 'Model', type: 'select', dependsOn: 'brand', optionsBy: PHONE_MODEL_OPTS });
 const memory = (): AttrField => ({ key: 'memory', ru: 'Память', uz: 'Xotira', type: 'text' });
 const year = (): AttrField => ({ key: 'year', ru: 'Год выпуска', uz: 'Yili', type: 'number' });
 const colorF = (): AttrField => ({ key: 'color', ru: 'Цвет', uz: 'Rang', type: 'select', options: COLORS });
@@ -143,7 +156,7 @@ export const CATEGORIES: Category[] = [
   {
     slug: 'electronics', ru: 'Электроника', uz: 'Elektronika', icon: '📱',
     sub: [
-      { slug: 'smartphones', ru: 'Смартфоны', uz: 'Smartfonlar', hasCondition: true, fields: [brand(), model(), memory(), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), colorF()] },
+      { slug: 'smartphones', ru: 'Смартфоны', uz: 'Smartfonlar', hasCondition: true, fields: [brand('Бренд', 'Brend', PHONE_BRAND_OPTS), phoneModel(), memory(), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), colorF()] },
       { slug: 'laptops', ru: 'Ноутбуки', uz: 'Noutbuklar', hasCondition: true, fields: [brand(), model(), txt('processor', 'Процессор', 'Protsessor'), num('ram', 'Оперативная память', 'Tezkor xotira', 'ГБ'), num('storage', 'Накопитель', 'Saqlash', 'ГБ'), num('screen', 'Экран', 'Ekran', '"'), colorF()] },
       { slug: 'tablets', ru: 'Планшеты', uz: 'Planshetlar', hasCondition: true, fields: [brand(), model(), memory(), num('screen', 'Экран', 'Ekran', '"')] },
       { slug: 'tv', ru: 'ТВ и проекторы', uz: 'TV va proyektorlar', hasCondition: true, fields: [brand(), num('screen', 'Диагональ', 'Diagonal', '"'), sel('smart', 'Smart TV', 'Smart TV', YESNO)] },
@@ -160,7 +173,7 @@ export const CATEGORIES: Category[] = [
       {
         slug: 'cars', ru: 'Автомобили', uz: 'Avtomobillar',
         fields: [
-          brand('Марка', 'Marka', CAR_MAKES), model(), year(), num('mileage', 'Пробег', 'Yurgan masofasi', 'км'),
+          brand('Марка', 'Marka', CAR_MAKES), carModel(), year(), num('mileage', 'Пробег', 'Yurgan masofasi', 'км'),
           sel('transmission', 'Коробка передач', 'Uzatma', TRANSMISSION), sel('fuel', 'Тип топлива', 'Yoqilg‘i', FUEL),
           sel('body', 'Тип кузова', 'Kuzov', BODY), sel('drive', 'Привод', 'Uzatma turi', DRIVE),
           num('engine', 'Объём двигателя', 'Dvigatel hajmi', 'л'), num('power', 'Мощность', 'Quvvat', 'л.с.'),

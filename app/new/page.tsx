@@ -30,6 +30,7 @@ export default function NewListingPage() {
 
   const [catSlug, setCatSlug] = useState('electronics');
   const [subSlug, setSubSlug] = useState('smartphones');
+  const [values, setValues] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [cond, setCond] = useState<Condition>('used');
@@ -45,6 +46,21 @@ export default function NewListingPage() {
     setCatSlug(slug);
     const first = catBySlug(slug)?.sub[0]?.slug ?? '';
     setSubSlug(first);
+    setValues({});
+  }
+  function changeSub(slug: string) {
+    setSubSlug(slug);
+    setValues({});
+  }
+  function setVal(key: string, val: string) {
+    setValues((prev) => {
+      const next = { ...prev, [key]: val };
+      // при смене родителя очищаем зависимые поля (напр. модель при смене марки)
+      sub?.fields.forEach((f) => {
+        if (f.dependsOn === key) delete next[f.key];
+      });
+      return next;
+    });
   }
 
   function addPhotos(list: FileList | null) {
@@ -148,7 +164,7 @@ export default function NewListingPage() {
           {cat && cat.sub.length > 0 && (
             <div className="field">
               <label>{T('Раздел', 'Bo‘lim')}</label>
-              <select value={subSlug} onChange={(e) => setSubSlug(e.target.value)}>
+              <select value={subSlug} onChange={(e) => changeSub(e.target.value)}>
                 {cat.sub.map((s) => (
                   <option key={s.slug} value={s.slug}>
                     {lang === 'uz' ? s.uz : s.ru}
@@ -205,29 +221,42 @@ export default function NewListingPage() {
           )}
 
           {/* Характеристики выбранного раздела */}
-          {sub?.fields.map((field) => (
-            <div className="field" key={field.key}>
-              <label>
-                {fieldLabel(field, lang)}
-                {field.unit ? `, ${field.unit}` : ''}
-              </label>
-              {field.type === 'select' ? (
-                <select name={field.key} defaultValue="">
-                  <option value="">{T('— выбрать —', '— tanlang —')}</option>
-                  {field.options?.map((o) => (
-                    <option key={o.v} value={o.v}>
-                      {optLabel(o, lang)}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  name={field.key}
-                  inputMode={field.type === 'number' ? 'numeric' : 'text'}
-                />
-              )}
-            </div>
-          ))}
+          {sub?.fields.map((field) => {
+            // зависимое поле: варианты берём по значению родителя
+            let opts = field.options;
+            let asText = false;
+            if (field.dependsOn) {
+              const parentVal = values[field.dependsOn] || '';
+              opts = field.optionsBy?.[parentVal];
+              if (!opts || opts.length === 0) asText = true; // нет каталога — даём ввести вручную
+            }
+            const val = values[field.key] ?? '';
+            return (
+              <div className="field" key={field.key}>
+                <label>
+                  {fieldLabel(field, lang)}
+                  {field.unit ? `, ${field.unit}` : ''}
+                </label>
+                {field.type === 'select' && !asText && opts ? (
+                  <select name={field.key} value={val} onChange={(e) => setVal(field.key, e.target.value)}>
+                    <option value="">{T('— выбрать —', '— tanlang —')}</option>
+                    {opts.map((o) => (
+                      <option key={o.v} value={o.v}>
+                        {optLabel(o, lang)}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    name={field.key}
+                    value={val}
+                    onChange={(e) => setVal(field.key, e.target.value)}
+                    inputMode={field.type === 'number' ? 'numeric' : 'text'}
+                  />
+                )}
+              </div>
+            );
+          })}
 
           {/* Местоположение */}
           <div className="field">

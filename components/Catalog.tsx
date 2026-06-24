@@ -199,8 +199,26 @@ export default function Catalog({
                 <label>{fieldLabel(field, lang)}</label>
                 <div className="seg">
                   {brandValues.map((b) => (
-                    <button key={b} className={selF[field.key] === b ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, [field.key]: s[field.key] === b ? '' : b }))}>
+                    <button key={b} className={selF[field.key] === b ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, brand: s.brand === b ? '' : b, model: '' }))}>
                       {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          }
+          // зависимый фильтр (модель) — появляется после выбора родителя
+          if (field.dependsOn) {
+            const pv = selF[field.dependsOn];
+            const opts = pv ? field.optionsBy?.[pv] : undefined;
+            if (!opts || opts.length === 0) return null;
+            return (
+              <div className="f-row" key={field.key}>
+                <label>{fieldLabel(field, lang)}</label>
+                <div className="seg">
+                  {opts.map((o) => (
+                    <button key={o.v} className={selF[field.key] === o.v ? 'on' : ''} onClick={() => setSelF((s) => ({ ...s, [field.key]: s[field.key] === o.v ? '' : o.v }))}>
+                      {optLabel(o, lang)}
                     </button>
                   ))}
                 </div>
