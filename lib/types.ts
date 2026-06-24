@@ -25,6 +25,9 @@ export interface Listing {
   is_promoted: boolean | null;
   views: number | null;
   created_at: string;
+  category?: string | null;
+  subcategory?: string | null;
+  attributes?: Record<string, string> | null;
   seller: Seller | null;
   images?: { url: string; sort: number | null }[] | null;
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/session';
 import { getAdminClient } from '@/lib/supabaseAdmin';
+import { subBySlug, COLUMN_KEYS } from '@/lib/categories';
 
 export const runtime = 'nodejs';
 
@@ -28,21 +29,41 @@ export async function POST(req: NextRequest) {
 
   const admin = getAdminClient();
 
+  const category = str('category') || null;
+  const subcategory = str('subcategory') || null;
+  const sub = subBySlug(category, subcategory);
+
+  // Базовая запись (общие поля)
+  const record: Record<string, unknown> = {
+    seller_id: user.pid,
+    title,
+    description: str('description') || null,
+    price,
+    district: str('district') || null,
+    city: str('city') || 'Tashkent',
+    category,
+    subcategory,
+    status: 'active',
+  };
+  if (sub?.hasCondition) {
+    record.condition = str('condition') === 'new' ? 'new' : 'used';
+  }
+
+  // Характеристики: brand/model/memory → колонки, остальное → attributes (JSONB)
+  const attributes: Record<string, string> = {};
+  if (sub) {
+    for (const field of sub.fields) {
+      const val = str(field.key);
+      if (!val) continue;
+      if (COLUMN_KEYS.includes(field.key)) record[field.key] = val;
+      else attributes[field.key] = val;
+    }
+  }
+  record.attributes = attributes;
+
   const { data: listing, error } = await admin
     .from('listings')
-    .insert({
-      seller_id: user.pid,
-      title,
-      description: str('description') || null,
-      price,
-      condition: str('condition') === 'new' ? 'new' : 'used',
-      brand: str('brand') || null,
-      model: str('model') || null,
-      memory: str('memory') || null,
-      district: str('district') || null,
-      city: str('city') || 'Tashkent',
-      status: 'active',
-    })
+    .insert(record)
     .select('id')
     .single();
 

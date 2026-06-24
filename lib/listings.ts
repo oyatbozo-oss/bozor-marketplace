@@ -4,6 +4,8 @@ import type { Listing } from './types';
 const SELECT =
   '*, seller:profiles(name,rating,is_verified,username), images:listing_images(url,sort)';
 
+// '*' уже включает category/subcategory/attributes
+
 export async function getActiveListings(): Promise<Listing[]> {
   const { data, error } = await supabase
     .from('listings')

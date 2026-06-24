@@ -7,10 +7,45 @@ import { useLang } from './LangProvider';
 import { condText, money, tr } from '@/lib/i18n';
 import { gradientFor } from '@/lib/gradient';
 import Gallery from './Gallery';
+import {
+  subBySlug,
+  fieldLabel,
+  optLabel,
+  catName,
+  subName,
+  COLUMN_KEYS,
+} from '@/lib/categories';
 
 export default function DetailView({ item }: { item: Listing }) {
   const { lang } = useLang();
   const seller = item.seller;
+
+  // Характеристики собираем по схеме раздела (колонки + JSONB attributes)
+  const sub = subBySlug(item.category, item.subcategory);
+  const specs: { label: string; value: string }[] = [];
+  if (sub) {
+    if (sub.hasCondition && item.condition) {
+      specs.push({ label: tr(lang, 'cond'), value: condText(lang, item.condition) });
+    }
+    for (const field of sub.fields) {
+      const raw = COLUMN_KEYS.includes(field.key)
+        ? (item[field.key as 'brand' | 'model' | 'memory'] ?? '')
+        : (item.attributes?.[field.key] ?? '');
+      if (!raw) continue;
+      let value = String(raw);
+      if (field.type === 'select') {
+        const o = field.options?.find((opt) => opt.v === raw);
+        if (o) value = optLabel(o, lang);
+      }
+      specs.push({
+        label: fieldLabel(field, lang) + (field.unit ? `, ${field.unit}` : ''),
+        value,
+      });
+    }
+  }
+  const crumb = [catName(item.category, lang), subName(item.category, item.subcategory, lang)]
+    .filter(Boolean)
+    .join(' › ');
   return (
     <>
       <div className="content">
@@ -24,29 +59,26 @@ export default function DetailView({ item }: { item: Listing }) {
             <span style={{ fontSize: 15, color: 'var(--muted)' }}>{tr(lang, 'sold')}</span>
           </div>
           <div className="d-title">{item.title}</div>
+          {crumb && (
+            <div className="c-meta" style={{ fontSize: 11, marginBottom: 4 }}>
+              {crumb}
+            </div>
+          )}
           <div className="c-meta" style={{ fontSize: 12 }}>
             📍 {item.district ? `${item.district}, ` : ''}
             {item.city || tr(lang, 'loc')}
           </div>
 
-          <div className="specs">
-            <div className="spec">
-              <b>{tr(lang, 'brand')}</b>
-              {item.brand || '-'}
+          {specs.length > 0 && (
+            <div className="specs">
+              {specs.map((s, i) => (
+                <div className="spec" key={i}>
+                  <b>{s.label}</b>
+                  {s.value}
+                </div>
+              ))}
             </div>
-            <div className="spec">
-              <b>{tr(lang, 'model')}</b>
-              {item.model || '-'}
-            </div>
-            <div className="spec">
-              <b>{tr(lang, 'memory')}</b>
-              {item.memory || '-'}
-            </div>
-            <div className="spec">
-              <b>{tr(lang, 'cond')}</b>
-              {condText(lang, item.condition)}
-            </div>
-          </div>
+          )}
 
           <div className="seller">
             <div className="ava">{seller?.name ? seller.name[0] : '?'}</div>

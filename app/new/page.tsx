@@ -11,6 +11,13 @@ import { condText, tr } from '@/lib/i18n';
 import type { Condition } from '@/lib/types';
 import { compressImage } from '@/lib/imageCompress';
 import { REGION_NAMES, districtsOf } from '@/lib/uzbekistan';
+import {
+  CATEGORIES,
+  catBySlug,
+  subBySlug,
+  fieldLabel,
+  optLabel,
+} from '@/lib/categories';
 
 const MAX = 10;
 
@@ -20,6 +27,8 @@ export default function NewListingPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [catSlug, setCatSlug] = useState('electronics');
+  const [subSlug, setSubSlug] = useState('smartphones');
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [cond, setCond] = useState<Condition>('used');
@@ -28,6 +37,14 @@ export default function NewListingPage() {
   const [err, setErr] = useState('');
 
   const T = (ru: string, uz: string) => (lang === 'uz' ? uz : ru);
+  const cat = catBySlug(catSlug);
+  const sub = subBySlug(catSlug, subSlug);
+
+  function changeCat(slug: string) {
+    setCatSlug(slug);
+    const first = catBySlug(slug)?.sub[0]?.slug ?? '';
+    setSubSlug(first);
+  }
 
   function addPhotos(list: FileList | null) {
     if (!list) return;
@@ -45,8 +62,9 @@ export default function NewListingPage() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setErr('');
-    const formEl = e.currentTarget;
-    const fd = new FormData(formEl);
+    const fd = new FormData(e.currentTarget);
+    fd.set('category', catSlug);
+    fd.set('subcategory', subSlug);
     fd.set('condition', cond);
 
     const title = (fd.get('title') ?? '').toString().trim();
@@ -58,7 +76,6 @@ export default function NewListingPage() {
 
     setBusy(true);
     try {
-      // Сжимаем и конвертируем фото в WebP перед загрузкой
       fd.delete('photos');
       const compressed = await Promise.all(photos.map((p) => compressImage(p)));
       compressed.forEach((p) => fd.append('photos', p));
@@ -115,6 +132,31 @@ export default function NewListingPage() {
         </div>
 
         <form onSubmit={submit}>
+          {/* Категория и подкатегория */}
+          <div className="field">
+            <label>{T('Категория', 'Kategoriya')}</label>
+            <select value={catSlug} onChange={(e) => changeCat(e.target.value)}>
+              {CATEGORIES.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.icon} {lang === 'uz' ? c.uz : c.ru}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {cat && cat.sub.length > 0 && (
+            <div className="field">
+              <label>{T('Раздел', 'Bo‘lim')}</label>
+              <select value={subSlug} onChange={(e) => setSubSlug(e.target.value)}>
+                {cat.sub.map((s) => (
+                  <option key={s.slug} value={s.slug}>
+                    {lang === 'uz' ? s.uz : s.ru}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Фото */}
           <div className="field">
             <label>{T('Фото (до 10)', 'Surat (10 tagacha)')}</label>
@@ -134,19 +176,12 @@ export default function NewListingPage() {
                 </div>
               )}
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => addPhotos(e.target.files)}
-            />
+            <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => addPhotos(e.target.files)} />
           </div>
 
           <div className="field">
             <label>{T('Название', 'Nomi')}</label>
-            <input name="title" placeholder={T('Напр.: iPhone 13 128GB', 'Masalan: iPhone 13 128GB')} />
+            <input name="title" placeholder={T('Коротко и ясно', 'Qisqa va aniq')} />
           </div>
 
           <div className="field">
@@ -154,48 +189,46 @@ export default function NewListingPage() {
             <input name="price" inputMode="numeric" placeholder="0" />
           </div>
 
-          <div className="field">
-            <label>{tr(lang, 'cond')}</label>
-            <div className="seg">
-              {(['new', 'used'] as Condition[]).map((c) => (
-                <button type="button" key={c} className={cond === c ? 'on' : ''} onClick={() => setCond(c)}>
-                  {condText(lang, c)}
-                </button>
-              ))}
+          {/* Состояние — только где уместно */}
+          {sub?.hasCondition && (
+            <div className="field">
+              <label>{tr(lang, 'cond')}</label>
+              <div className="seg">
+                {(['new', 'used'] as Condition[]).map((c) => (
+                  <button type="button" key={c} className={cond === c ? 'on' : ''} onClick={() => setCond(c)}>
+                    {condText(lang, c)}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="field">
-            <label>{tr(lang, 'brand')}</label>
-            <input name="brand" list="brands" placeholder="iPhone, Samsung, Xiaomi…" />
-            <datalist id="brands">
-              <option value="iPhone" />
-              <option value="Samsung" />
-              <option value="Xiaomi" />
-              <option value="Realme" />
-              <option value="Honor" />
-              <option value="Google" />
-              <option value="OnePlus" />
-            </datalist>
-          </div>
+          {/* Характеристики выбранного раздела */}
+          {sub?.fields.map((field) => (
+            <div className="field" key={field.key}>
+              <label>
+                {fieldLabel(field, lang)}
+                {field.unit ? `, ${field.unit}` : ''}
+              </label>
+              {field.type === 'select' ? (
+                <select name={field.key} defaultValue="">
+                  <option value="">{T('— выбрать —', '— tanlang —')}</option>
+                  {field.options?.map((o) => (
+                    <option key={o.v} value={o.v}>
+                      {optLabel(o, lang)}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  name={field.key}
+                  inputMode={field.type === 'number' ? 'numeric' : 'text'}
+                />
+              )}
+            </div>
+          ))}
 
-          <div className="field">
-            <label>{tr(lang, 'model')}</label>
-            <input name="model" placeholder={T('Напр.: 13 Pro', 'Masalan: 13 Pro')} />
-          </div>
-
-          <div className="field">
-            <label>{tr(lang, 'memory')}</label>
-            <input name="memory" list="mem" placeholder="128 GB" />
-            <datalist id="mem">
-              <option value="64 GB" />
-              <option value="128 GB" />
-              <option value="256 GB" />
-              <option value="512 GB" />
-              <option value="1 TB" />
-            </datalist>
-          </div>
-
+          {/* Местоположение */}
           <div className="field">
             <label>{T('Город / область', 'Shahar / viloyat')}</label>
             <select name="city" value={region} onChange={(e) => setRegion(e.target.value)}>
@@ -221,7 +254,7 @@ export default function NewListingPage() {
 
           <div className="field">
             <label>{T('Описание', 'Tavsif')}</label>
-            <textarea name="description" placeholder={T('Состояние, комплект, причина продажи…', 'Holati, to‘plami, sotuv sababi…')} />
+            <textarea name="description" placeholder={T('Подробности, состояние, детали…', 'Tafsilotlar, holati…')} />
           </div>
 
           {err && <div className="form-err">{err}</div>}
