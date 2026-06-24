@@ -11,6 +11,7 @@ export interface Seller {
 
 export interface Listing {
   id: string;
+  seller_id?: string | null;
   title: string;
   description: string | null;
   price: number;

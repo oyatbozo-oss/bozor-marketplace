@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { Listing } from '@/lib/types';
 import { allImages } from '@/lib/types';
 import { useLang } from './LangProvider';
+import { useAuth } from './AuthProvider';
 import { condText, money, tr } from '@/lib/i18n';
 import { gradientFor } from '@/lib/gradient';
 import Gallery from './Gallery';
@@ -18,6 +21,27 @@ import {
 
 export default function DetailView({ item }: { item: Listing }) {
   const { lang } = useLang();
+  const user = useAuth();
+  const router = useRouter();
+  const [chatBusy, setChatBusy] = useState(false);
+  const isOwn = !!user && !!item.seller_id && user.pid === item.seller_id;
+
+  async function startChat() {
+    if (chatBusy) return;
+    setChatBusy(true);
+    try {
+      const res = await fetch('/api/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: item.id }),
+      });
+      const d = await res.json();
+      if (d?.ok) router.push(`/chat/${d.id}`);
+      else setChatBusy(false);
+    } catch {
+      setChatBusy(false);
+    }
+  }
   const seller = item.seller;
 
   // Характеристики собираем по схеме раздела (колонки + JSONB attributes)
@@ -97,19 +121,27 @@ export default function DetailView({ item }: { item: Listing }) {
       </div>
 
       <div className="actionbar">
-        {seller?.username ? (
-          <a
-            className="btn solid"
-            href={`https://t.me/${seller.username}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            💬 {tr(lang, 'write')}
-          </a>
-        ) : (
+        {isOwn ? (
           <button className="btn solid" disabled style={{ opacity: 0.55 }}>
-            💬 {tr(lang, 'soon')}
+            {lang === 'uz' ? 'Bu sizning e’loningiz' : 'Это ваше объявление'}
           </button>
+        ) : (
+          <>
+            {seller?.username && (
+              <a className="btn ghost" href={`https://t.me/${seller.username}`} target="_blank" rel="noreferrer">
+                Telegram
+              </a>
+            )}
+            {user ? (
+              <button className="btn solid" onClick={startChat} disabled={chatBusy}>
+                💬 {tr(lang, 'write')}
+              </button>
+            ) : (
+              <Link className="btn solid" href="/profile">
+                💬 {tr(lang, 'write')}
+              </Link>
+            )}
+          </>
         )}
       </div>
     </>
