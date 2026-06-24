@@ -72,7 +72,7 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
-      <TabBar />
+      <TabBar active="profile" />
     </>
   );
 }

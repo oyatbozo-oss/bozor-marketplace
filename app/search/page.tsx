@@ -3,18 +3,17 @@ import TabBar from '@/components/TabBar';
 import Catalog from '@/components/Catalog';
 import { getActiveListings } from '@/lib/listings';
 
-// Тянем свежие данные при каждом запросе (каталог живой).
 export const dynamic = 'force-dynamic';
 
-export default async function HomePage() {
+export default async function SearchPage() {
   const listings = await getActiveListings();
   return (
     <>
       <Header />
       <div className="content">
-        <Catalog listings={listings} />
+        <Catalog listings={listings} autoFocus />
       </div>
-      <TabBar />
+      <TabBar active="search" />
     </>
   );
 }
