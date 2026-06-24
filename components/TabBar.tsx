@@ -24,10 +24,10 @@ export default function TabBar() {
         <span className="ic">💬</span>
         <span>{tr(lang, 't_chat')}</span>
       </div>
-      <div className="tab">
+      <Link href="/profile" className="tab">
         <span className="ic">👤</span>
         <span>{tr(lang, 't_prof')}</span>
-      </div>
+      </Link>
     </div>
   );
 }

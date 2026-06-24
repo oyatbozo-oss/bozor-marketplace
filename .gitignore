@@ -11,3 +11,6 @@ dist/
 # build / typescript artifacts
 *.tsbuildinfo
 next-env.d.ts
+
+# личные настройки Claude Code (не коммитим)
+.claude/settings.local.json
